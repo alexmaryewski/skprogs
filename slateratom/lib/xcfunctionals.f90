@@ -86,6 +86,9 @@ module xcfunctionals
     !> MGGA-TASK+CC
     integer :: MGGA_TASK_CC = 16  
 
+    !> Y-MGGA-WB97MV
+    integer :: Y_MGGA_wB97MV = 17
+
   contains
 
     procedure :: isLDA => TXcFunctionalsEnum_isLDA
@@ -156,7 +159,7 @@ contains
 
     if (xcnr == this%MGGA_SCAN .or. xcnr == this%MGGA_r2SCAN .or. xcnr == this%MGGA_TASK&
         & .or. xcnr == this%MGGA_r4SCAN .or. xcnr == this%MGGA_TPSS&
-        & .or. xcnr == this%MGGA_TASK_CC) then
+        & .or. xcnr == this%MGGA_TASK_CC .or. xcnr == this%Y_MGGA_wB97MV) then
       isMGGA = .true.
     end if
 
@@ -176,7 +179,7 @@ contains
 
     isLongRangeCorrected = .false.
 
-    if (xcnr == this%LCY_PBE96 .or. xcnr == this%LCY_BNL) then
+    if (xcnr == this%LCY_PBE96 .or. xcnr == this%LCY_BNL .or. xcnr == this%Y_MGGA_wB97MV) then
       isLongRangeCorrected = .true.
     end if
 
@@ -1258,6 +1261,139 @@ contains
     call xc_f03_func_end(xcfunc_c)
 
   end subroutine getExcVxc_MGGA_TASK_CC
+
+
+  !> Calculates exc and vxc for the Yukawa wB97M-V xc-functional.
+  !! definition: doi.org/10.1063/1.4952647
+  subroutine getExcVxc_Y_MGGA_WB97MV(abcissa, dz, dzdr, rho, drho, sigma, tau, omega, exc, vxc,&
+      & vtau)
+
+    !> numerical integration abcissas
+    real(dp), intent(in) :: abcissa(:)
+
+    !> step width in linear coordinates
+    real(dp), intent(in) :: dz
+
+    !> dz/dr
+    real(dp), intent(in) :: dzdr(:)
+
+    !> density on grid
+    real(dp), intent(in) :: rho(:,:)
+
+    !> 1st deriv. of density on grid
+    real(dp), intent(in) :: drho(:,:)
+
+    !> contracted gradients of the density
+    real(dp), intent(in), allocatable :: sigma(:,:)
+
+    !> kinetic energy density
+    real(dp), intent(in):: tau(:,:)
+
+    !> range separation parameter
+    real(dp), intent(in) :: omega
+
+    !> exc energy density on grid
+    real(dp), intent(out) :: exc(:)
+
+    !> xc potential on grid
+    real(dp), intent(out) :: vxc(:,:)
+
+    !> orbital-dependent tau potential on grid
+    real(dp), intent(out) :: vtau(:,:)
+
+    !! density in libxc compatible format, i.e. rho/(4pi)
+    real(dp), allocatable :: rhor(:,:)
+
+    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    real(dp), allocatable :: rtau(:,:)
+
+    !! libxc related objects
+    type(xc_f03_func_t) :: xcfunc_x, xcfunc_c
+
+    !! number of density grid points
+    integer(c_size_t) :: nn
+
+    !! exchange and correlation energy on grid
+    real(dp), allocatable :: ex(:), ec(:)
+
+    !! exchange and correlation potential on grid
+    real(dp), allocatable :: vx(:,:), vc(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of sigma (exchange)
+    real(dp), allocatable :: vxsigma(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of sigma (correlation)
+    real(dp), allocatable :: vcsigma(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of tau (exchange)
+    real(dp), allocatable :: vxtau(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of tau (correlation)
+    real(dp), allocatable :: vctau(:,:)
+
+    !! laplacian for libxc (dummy)
+    real(dp), allocatable :: lapl(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of laplacian (exchange)
+    !! (dummy)
+    real(dp), allocatable :: vxlapl(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of laplacian (correlation)
+    !! (dummy)
+    real(dp), allocatable :: vclapl(:,:)
+
+    nn = size(rho, dim=1)
+    ! divide by 4*pi to catch different normalization of spherical harmonics
+    allocate(rhor(2, nn))
+    rhor(:,:) = transpose(rho) * rec4pi
+
+    allocate(ex(nn))
+    ex(:) = 0.0_dp
+    allocate(ec(nn))
+    ec(:) = 0.0_dp
+    allocate(vx(2, nn))
+    vx(:,:) = 0.0_dp
+    allocate(vc(2, nn))
+    vc(:,:) = 0.0_dp
+
+    allocate(vxsigma(3, nn))
+    vxsigma(:,:) = 0.0_dp
+    allocate(vcsigma(3, nn))
+    vcsigma(:,:) = 0.0_dp
+
+    allocate(vxtau(2, nn))
+    vxtau(:,:) = 0.0_dp
+    allocate(vctau(2, nn))
+    vctau(:,:) = 0.0_dp
+
+    allocate(lapl(2, nn))
+    lapl(:,:) = 0.0_dp
+    allocate(vxlapl(2, nn))
+    vxlapl(:,:) = 0.0_dp
+    allocate(vclapl(2, nn))
+    vclapl(:,:) = 0.0_dp
+
+    call xc_f03_func_init(xcfunc_x, XC_GGA_X_SFAT_PBE, XC_POLARIZED)
+    call xc_f03_func_set_ext_params(xcfunc_x, [omega])
+    call xc_f03_func_init(xcfunc_c, XC_GGA_C_PBE, XC_POLARIZED)
+
+    ! exchange
+    call xc_f03_gga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), ex(1), vx(1, 1), vxsigma(1, 1))
+
+    ! correlation
+    call xc_f03_gga_exc_vxc(xcfunc_c, nn, rhor(1, 1), sigma(1, 1), ec(1), vc(1, 1), vcsigma(1, 1))
+    call zeroOutCpotOfEmptyDensitySpinChannels(rho, vc)
+
+    exc(:) = ex + ec
+    vxc(:,:) = transpose(vx + vc)
+
+    call libxcVxcToInternalVxc(abcissa, dz, dzdr, drho, vxsigma, vcsigma, vxc)
+
+    ! finalize libxc objects
+    call xc_f03_func_end(xcfunc_x)
+    call xc_f03_func_end(xcfunc_c)
+
+  end subroutine getExcVxc_Y_MGGA_WB97MV
 
 
   !> Calculates exc and vxc for the LCY-PBE96 xc-functional.

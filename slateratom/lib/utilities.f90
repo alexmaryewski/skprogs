@@ -274,7 +274,6 @@ contains
         do ii = 1, diagsize
           occ_ii = abs(occ(iSpin, ll, ii))
           if (occ_ii > 1e-16) then
-            ! change = change + (eigval_new(iSpin, ll, ii) - eigval_old(iSpin, ll, ii))**2 
             e_diff = abs(eigval_new(iSpin, ll, ii) - eigval_old(iSpin, ll, ii)) 
             if (e_diff > res) then
               res = e_diff
