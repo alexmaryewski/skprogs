@@ -12,74 +12,109 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    defaults:
+      run:
+        shell: bash -l {0}
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
+        # Switch from openmpi to mpich, since installing openmpi-mpifort
+        # from the conda-forge channel downgrades gfortran at the moment
+        mpi: [nompi, mpich]
+        libxc: [6, 7]
         config: [Debug]
-        version: [13]
+        # Serial binary is tested with libxc 7
+        exclude:
+          - mpi: nompi
+            libxc: 6
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Set up python
-      uses: actions/setup-python@v4
+    - name: Set up miniforge
+      uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: '3.x'
+        miniforge-version: latest
+        auto-activate-base: true
+        activate-environment: ""
 
     - name: Install GCC (Linux)
-      run: |
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-        sudo apt-get update
-        sudo apt-get install -y gcc-${{ matrix.version}} gfortran-${{ matrix.version }}
-        sudo update-alternatives \
-          --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.version }} 100 \
-          --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ matrix.version }} \
-          --slave /usr/bin/gcov gcov /usr/bin/gcov-${{ matrix.version }}
+      run: mamba install c-compiler cxx-compiler fortran-compiler
+
+    - name: Enable MPI build
+      if: contains(matrix.mpi, 'openmpi') || contains(matrix.mpi, 'mpich')
+      run: echo "WITH_MPI=true" >> $GITHUB_ENV
+
+    - name: Disable MPI build
+      if: contains(matrix.mpi, 'nompi')
+      run: echo "WITH_MPI=false" >> $GITHUB_ENV
 
     - name: Set Compiler
       run: |
-        echo "FC=gfortran" >> $GITHUB_ENV
-        echo "CC=gcc" >> $GITHUB_ENV
+        echo "FC=${CONDA_PREFIX}/bin/gfortran" >> $GITHUB_ENV
+        echo "CC=${CONDA_PREFIX}/bin/gcc" >> $GITHUB_ENV
 
-    - name: Compile and Install libXC
-      run: |
-        git clone https://gitlab.com/libxc/libxc.git
-        cd libxc/
-        git checkout 6.2.2
-        cmake -DCMAKE_INSTALL_PREFIX=${PWD}/${BUILD_DIR}/${INSTALL_DIR} -DENABLE_FORTRAN=True -B ${BUILD_DIR} .
-        cd ${BUILD_DIR}
-        make -j 2
-        make install
-        cd ../../
+    - name: Install OpenMPI
+      if: contains(matrix.mpi, 'openmpi')
+      run: mamba install openmpi openmpi-mpifort
 
-    - name: Set libXC search path
-      run: |
-        echo "CMAKE_PREFIX_PATH=./libxc/${BUILD_DIR}/${INSTALL_DIR}/" >> $GITHUB_ENV
+    - name: Install MPICH
+      if: contains(matrix.mpi, 'mpich')
+      run: mamba install mpich mpich-mpifort
 
-    - name: Install requirements (pip)
-      run: |
-        pip3 install --upgrade pip
-        pip3 install wheel
-        pip3 install cmake fypp numpy scipy
+    - name: Install BLAS
+      run: mamba install openblas libopenblas
 
-    - name: Configure build
+    - name: Install libxc (6.2.2)
+      if: contains(matrix.libxc, '6')
+      run: mamba install libxc=6.2.2
+
+    - name: Install libxc (7.0.0)
+      if: contains(matrix.libxc, '7')
+      run: mamba install libxc=7.0.0
+
+    - name: Set libxc search path
+      run: echo "CMAKE_PREFIX_PATH=${CONDA_PREFIX}/" >> $GITHUB_ENV
+
+    - name: Install requirements (conda)
+      run: mamba install cmake fypp numpy scipy
+
+    - name: Configure build (-DTEST_MPI_PROCS=1)
+      if: contains(matrix.mpi, 'nompi') || contains(matrix.libxc, '6')
       run: |
-        cmake -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${PWD}/${BUILD_DIR}/${INSTALL_DIR} -DCMAKE_BUILD_TYPE=Debug .
+        cmake -B ${BUILD_DIR} -DWITH_MPI=${WITH_MPI} \
+        -DCMAKE_INSTALL_PREFIX=${PWD}/${BUILD_DIR}/${INSTALL_DIR} \
+        -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DTEST_MPI_PROCS=1 .
+
+    - name: Configure build (-DTEST_MPI_PROCS=2)
+      if: "! contains(matrix.mpi, 'nompi') && ! contains(matrix.libxc, '6')"
+      run: |
+        cmake -B ${BUILD_DIR} -DWITH_MPI=${WITH_MPI} \
+        -DCMAKE_INSTALL_PREFIX=${PWD}/${BUILD_DIR}/${INSTALL_DIR} \
+        -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DTEST_MPI_PROCS=2 .
 
     - name: Build project
       run: cmake --build ${BUILD_DIR}
 
-    - name: Run regression tests
+    - name: Run regression tests (-j2)
+      if: contains(matrix.mpi, 'nompi') || contains(matrix.libxc, '6')
       run: |
         pushd ${BUILD_DIR}
-        ctest -j 2 --output-on-failure
+        ctest -j2 --output-on-failure
+        popd
+
+    - name: Run regression tests (-j1)
+      if: "! contains(matrix.mpi, 'nompi') && ! contains(matrix.libxc, '6')"
+      run: |
+        pushd ${BUILD_DIR}
+        ctest -j1 --output-on-failure
         popd
 
     - name: Install project
-      run: |
-        cmake --install ${BUILD_DIR}
+      run: cmake --install ${BUILD_DIR}
 
   intel-build:
 
@@ -96,13 +131,14 @@ jobs:
       CMAKE_OPTIONS: >-
         -DCMAKE_BUILD_TYPE=${{ matrix.config }}
         -DFYPP_FLAGS='-DTRAVIS'
+        -DWITH_MPI=false
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.x
 
@@ -110,9 +146,9 @@ jobs:
       uses: rscohn2/setup-oneapi@v0
       with:
         components: |
-          icx@2024.0.0
-          ifx@2024.0.0
-          mkl@2024.0.0
+          icx@2025.0.4
+          ifx@2025.0.4
+          mkl@2025.0.1
 
     - name: Setup Intel environment
       run: |
@@ -121,18 +157,18 @@ jobs:
         echo "FC=ifx" >> ${GITHUB_ENV}
         echo "CC=icx" >> ${GITHUB_ENV}
 
-    - name: Compile and install libXC
+    - name: Compile and install libxc
       run: |
         git clone https://gitlab.com/libxc/libxc.git
         cd libxc/
         git checkout 6.2.2
         cmake -DCMAKE_INSTALL_PREFIX=${PWD}/${BUILD_DIR}/${INSTALL_DIR} -DENABLE_FORTRAN=True -B ${BUILD_DIR} .
         cd ${BUILD_DIR}
-        make -j 2
+        make -j2
         make install
         cd ../../
 
-    - name: Set libXC search path
+    - name: Set libxc search path
       run: |
         echo "CMAKE_PREFIX_PATH=./libxc/${BUILD_DIR}/${INSTALL_DIR}/" >> $GITHUB_ENV
 
@@ -156,7 +192,7 @@ jobs:
     - name: Run regression tests
       run: |
         pushd ${BUILD_DIR}
-        ctest -j 2 --output-on-failure
+        ctest -j2 --output-on-failure
         popd
 
     - name: Install project
