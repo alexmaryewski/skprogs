@@ -150,7 +150,7 @@ program HFAtom
   ! Thomas-Fermi guess potential is currently disabled
   if (.not. (xcnr == xcFunctional%HF_Exchange)) then
     ! SAP potential
-    call sap_start_pot(abcissa, num_mesh_points, nuc, vxc)
+    call sap_start_pot(abcissa, nuc, vxc)
   end if
 
   ! build initial fock matrix, core hamiltonian only
