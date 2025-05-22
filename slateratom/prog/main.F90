@@ -17,7 +17,7 @@ program HFAtom
       & write_waves_file_standard, write_wave_coeffs_file, cusp_values, writeAveragePotential
   use sap, only : sap_start_pot
   use totalenergy, only : getTotalEnergy, getTotalEnergyZora
-  use dft, only : check_accuracy, density_grid
+  use dft, only : check_accuracy, density_grid, thomas_fermi_start_pot
   use utilities, only : check_electron_number, check_convergence_energy,&
       & check_convergence_commutator, check_convergence_eigenspectrum,&
       & compute_commutator, check_convergence_density
@@ -151,6 +151,7 @@ program HFAtom
   if (.not. (xcnr == xcFunctional%HF_Exchange)) then
     ! SAP potential
     call sap_start_pot(abcissa, nuc, vxc)
+    ! call thomas_fermi_start_pot(abcissa, num_mesh_points, nuc, vxc)
   end if
 
   ! build initial fock matrix, core hamiltonian only

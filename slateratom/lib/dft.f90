@@ -26,7 +26,7 @@ contains
   !> Total potential to initialize a DFT calculation from Thomas-Fermi theory. This does not work as
   !! intended in the current code, since we do not have a numerical Coulomb-Potential.
   !!
-  !! Generalized Thomas-Fermi atomic potential as published by R. Latter,
+  !! Generalized Fermi atomic potential as published by R. Latter,
   !! Phys. Rev. 99, 510 (1955) eqn. 5/9 and implemented in Dirk Porezags scfatom.
   pure subroutine thomas_fermi_start_pot(abcissa, num_mesh_points, nuc, vxc)
 
