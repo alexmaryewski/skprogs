@@ -8,10 +8,10 @@ module dft
       & getExcVxc_GGA_PBE96, getExcVxc_GGA_BLYP, getExcVxc_LCY_PBE96, getExcVxc_LCY_BNL,&
       & getExcVxc_HYB_B3LYP, getExcVxc_HYB_PBE0, getExcVxc_CAMY_B3LYP, getExcVxc_CAMY_PBEh, &
       & getExcVxc_MGGA_TPSS, getExcVxc_MGGA_SCAN, getExcVxc_MGGA_r2SCAN, getExcVxc_MGGA_r4SCAN,&
-      & getExcVxc_MGGA_TASK, getExcVxc_MGGA_TASK_CC
+      & getExcVxc_MGGA_TASK, getExcVxc_MGGA_TASK_CC, getExcVxc_CAMY_MGGA_wB97M
   use density, only : basis, basis_times_basis_times_r2, density_at_point, density_at_point_1st,&
       & density_at_point_2nd, tau_at_point, basis_1st_times_basis_1st_times_r2,&
-      & basis_1st_times_basis_1st
+      & basis_1st_times_basis_1st, basis_times_basis
 
   implicit none
   private
@@ -249,6 +249,9 @@ contains
       call getExcVxc_MGGA_TASK(abcissa, dz, dzdr, rho, drho, sigma, tau, exc, vxc, vtau)
     case(xcFunctional%MGGA_TASK_CC)
       call getExcVxc_MGGA_TASK_CC(abcissa, dz, dzdr, rho, drho, sigma, tau, exc, vxc, vtau)
+    case(xcFunctional%CAMY_MGGA_wB97M)
+      call getExcVxc_CAMY_MGGA_wB97M(abcissa, dz, dzdr, rho, drho, sigma, tau, omega, camAlpha,&
+          & camBeta, exc, vxc, vtau)
     case default
       write(*, '(A,I2,A)') 'XCNR=', xcnr, ' not implemented!'
       stop
@@ -385,8 +388,12 @@ contains
       exc_matrixelement(2) = exc_matrixelement(2) - weight(ii) * vxc(ii, 2) * basis
 
       if (xcFunctional%isMGGA(xcnr)) then
-        ! «basis» for MGGA is a product of gradients
-        basis = basis_1st_times_basis_1st_times_r2(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))
+        ! GKS meta-GGA basis is the product of gradients of basis functions
+        ! basis = basis_1st_times_basis_1st_times_r2(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))
+
+        basis = basis_1st_times_basis_1st_times_r2(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))&
+            & + basis_times_basis(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))&
+            & * (ll * (ll + 1))
 
         exc_matrixelement(1) = exc_matrixelement(1) - weight(ii) * vtau(ii, 1) * basis * 0.5_dp
         exc_matrixelement(2) = exc_matrixelement(2) - weight(ii) * vtau(ii, 2) * basis * 0.5_dp

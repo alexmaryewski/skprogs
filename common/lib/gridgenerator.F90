@@ -20,7 +20,7 @@ contains
 
     interface
       !> General interface for utilized coordinate transformation.
-      subroutine coordtrans(oldc, rm, newc, jacobi)
+      pure subroutine coordtrans(oldc, rm, newc, jacobi)
         use common_accuracy, only : dp
 
         !> old coordinate

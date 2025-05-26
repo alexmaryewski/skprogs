@@ -138,20 +138,11 @@ contains
     call build_coulomb_matrix(jj, p_total, max_l, num_alpha, poly_order, j_matrix)
 
     ! build exchange(-correlation) potential matrices:
-
     ! pure Hartree-Fock
     if (xcnr == xcFunctional%HF_Exchange) then
       call build_hf_ex_matrix(kk, pp, max_l, num_alpha, poly_order, k_matrix)
-    end if
-
-    ! pure DFT
-    if (xcFunctional%isLDA(xcnr) .or. xcFunctional%isGGA(xcnr) .or. xcFunctional%isMGGA(xcnr)) then
-      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points,&
-          & abcissa, weight, vxc, vtau, k_matrix)
-    end if
-
     ! HF - DFT hybrid
-    if (xcFunctional%isLongRangeCorrected(xcnr)) then
+    elseif (xcFunctional%isLongRangeCorrected(xcnr)) then
       call build_hf_ex_matrix(kk_lr, pp, max_l, num_alpha, poly_order, k_matrix)
       call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points,&
           & abcissa, weight, vxc, vtau, k_matrix2)
@@ -173,13 +164,11 @@ contains
       call build_hf_ex_matrix(kk_lr, pp, max_l, num_alpha, poly_order, k_matrix2)
       call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points,&
           & abcissa, weight, vxc, vtau, k_matrix3)
-      if (xcnr == xcFunctional%CAMY_B3LYP) then
-        ! CAMY-B3LYP parameters (libXC defaults)
-        k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
-      elseif (xcnr == xcFunctional%CAMY_PBEh) then
-        ! CAMY-PBEh
-        k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
-      end if
+      k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
+    else
+    ! Semilocal xc functionals
+      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points,&
+          & abcissa, weight, vxc, vtau, k_matrix)
     end if
 
     ! build mixer input

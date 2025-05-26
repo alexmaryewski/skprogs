@@ -11,11 +11,10 @@ module common_poisson
 
   use common_accuracy, only : dp
   use common_constants, only : pi, pi_hlf
-
+  use common_coordtrans, only : coordtrans_radial_becke1, coordtrans_radial_becke2
   use common_quadratures, only : TQuadrature, TQuadrature2D, gauss_chebyshev_quadrature
   use common_quadratures, only : lebedev_laikov_quadrature
   use common_gridgenerator, only : gengrid1_1, gengrid1_3, gengrid2_3
-  use common_coordtrans, only : coordtrans_radial_becke1, coordtrans_radial_becke2
   use common_partition, only : partition_becke_homo
   use common_anglib, only : initGaunt
   use common_finitedifferences, only : makeHelmholzFDMatrix7P, makePoissonFDMatrix7P

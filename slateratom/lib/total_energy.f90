@@ -123,19 +123,12 @@ contains
       ! PBE0 with camAlpha * HFX
       hf_x_energy = camAlpha * hf_x_energy
     elseif (xcFunctional%isCAMY(xcnr)) then
+      ! CAMY-B3LYP parameters a=0.20, b=0.72, c=0.81 (libXC defaults)
       hf_x_energy = hf_ex_energy(kk, pp, max_l, num_alpha, poly_order)
       hf_x_energy_lr = hf_ex_energy(kk_lr, pp, max_l, num_alpha, poly_order)
-      if (xcnr == xcFunctional%CAMY_B3LYP) then
-        ! CAMY-B3LYP parameters a=0.20, b=0.72, c=0.81 (libXC defaults)
-        hf_x_energy = camAlpha * hf_x_energy
-        hf_x_energy_lr = camBeta * hf_x_energy_lr
-        hf_x_energy = hf_x_energy + hf_x_energy_lr
-      elseif (xcnr == xcFunctional%CAMY_PBEh) then
-        ! CAMY-PBEh
-        hf_x_energy = camAlpha * hf_x_energy
-        hf_x_energy_lr = camBeta * hf_x_energy_lr
-        hf_x_energy = hf_x_energy + hf_x_energy_lr
-      end if
+      hf_x_energy = camAlpha * hf_x_energy
+      hf_x_energy_lr = camBeta * hf_x_energy_lr
+      hf_x_energy = hf_x_energy + hf_x_energy_lr
     end if
 
     ! pure HF:
@@ -150,13 +143,13 @@ contains
     ! pure HF
     if (xcnr == xcFunctional%HF_Exchange) then
       total_energy = dummy1 + 0.5_dp * coulomb + 0.5_dp * hf_x_energy
-    ! (semi-)local functionals
-    elseif ((xcnr == xcFunctional%X_Alpha) .or. xcFunctional%isLDA(xcnr)&
-        & .or. xcFunctional%isGGA(xcnr)) then
-      total_energy = dummy1 + 0.5_dp * coulomb + dft_xc_energy
-    ! global hybrids, LC, CAM functionals
-    else
+    ! global and range-separated hybrids
+    elseif (xcFunctional%isGlobalHybrid(xcnr) .or. xcFunctional%isLongRangeCorrected(xcnr)&
+          & .or. xcFunctional%isCAMY(xcnr)) then
       total_energy = dummy1 + 0.5_dp * coulomb + dft_xc_energy + 0.5_dp * hf_x_energy
+    ! purely emilocal xc functionals
+    else
+      total_energy = dummy1 + 0.5_dp * coulomb + dft_xc_energy
     end if
 
   end subroutine getTotalEnergy
@@ -298,17 +291,9 @@ contains
     elseif (xcFunctional%isCAMY(xcnr)) then
       hf_x_energy = hf_ex_energy(kk, pp, max_l, num_alpha, poly_order)
       hf_x_energy_lr = hf_ex_energy(kk_lr, pp, max_l, num_alpha, poly_order)
-      if (xcnr == xcFunctional%CAMY_B3LYP) then
-        ! CAMY-B3LYP parameters a=0.20, b=0.72, c=0.81 (libXC defaults)
-        hf_x_energy = camAlpha * hf_x_energy
-        hf_x_energy_lr = camBeta * hf_x_energy_lr
-        hf_x_energy = hf_x_energy + hf_x_energy_lr
-      elseif (xcnr == xcFunctional%CAMY_PBEh) then
-        ! CAMY-PBEh
-        hf_x_energy = camAlpha * hf_x_energy
-        hf_x_energy_lr = camBeta * hf_x_energy_lr
-        hf_x_energy = hf_x_energy + hf_x_energy_lr
-      end if
+      hf_x_energy = camAlpha * hf_x_energy
+      hf_x_energy_lr = camBeta * hf_x_energy_lr
+      hf_x_energy = hf_x_energy + hf_x_energy_lr
     end if
 
     call dft_exc_energy(num_mesh_points, rho, exc, weight, abcissa, dft_xc_energy)

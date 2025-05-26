@@ -30,8 +30,12 @@ set(Fortran_FLAGS_RELEASE "-O2 -funroll-all-loops"
 set(Fortran_FLAGS_RELWITHDEBINFO "-g ${Fortran_FLAGS_RELEASE}"
   CACHE STRING "Fortran compiler flags for Release build")
 
+# set(Fortran_FLAGS_DEBUG
+  # "-g -Wall -std=f2018 -fcheck=all -frecursive -ffpe-trap=invalid,zero -finit-real=nan -finit-integer='huge(1)'"
+  # CACHE STRING "Fortran compiler flags for Debug build")
+
 set(Fortran_FLAGS_DEBUG
-  "-g -Wall -pedantic -std=f2018 -fcheck=all -frecursive -ffpe-trap=invalid,zero -finit-real=nan -finit-integer='huge(1)'"
+  "-g -Wall -std=f2018 -fcheck=all -frecursive -ffpe-trap=invalid,zero -finit-real=nan -finit-integer='huge(1)'"
   CACHE STRING "Fortran compiler flags for Debug build")
 
 set(Fortran_FLAGS_COVERAGE "-O0 -g --coverage")

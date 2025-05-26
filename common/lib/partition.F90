@@ -32,7 +32,7 @@ module common_partition
       real(dp), intent(in) :: partparams(:)
 
       !! resulting value of the partition function, between [0,1]
-      real(dp) :: res
+      real(dp):: res
 
     end function partitionFunc
 

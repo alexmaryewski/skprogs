@@ -114,9 +114,10 @@ contains
     write(*, '(A)') 'Enter nuclear charge, maximal angular momentum (s=0), max. SCF, SCF tol., ZORA'
     read(*,*) nuc, max_l, maxiter, scftol, tZora
 
-    write(*, '(A)') 'Enter XC functional:&
-        & 0: HF, 1: X-Alpha, 2: LDA-PW91, 3: GGA-PBE96, 4: GGA-BLYP, 5: LCY-PBE96, 6: LCY-BNL,&
-        & 7: PBE0, 8: B3LYP, 9: CAMY-B3LYP, 10: CAMY-PBEh'
+    write(*, '(A)') 'Enter XC functional:'
+    write(*, '(A)') '0: HF, 1: X-Alpha, 2: LDA-PW91, 3: GGA-PBE96, 4: GGA-BLYP, 5: LCY-PBE96,'
+    write(*, '(A)') '6: LCY-BNL, 7: PBE0, 8: B3LYP, 9: CAMY-B3LYP, 10: CAMY-PBEh, 11: TPSS,'
+    write(*, '(A)') '12: SCAN, 13: r2SCAN, 14: r4SCAN, 15: TASK, 16: TASK+CC, 17: Y-wB97M'
     read(*,*) xcnr
 
     if (xcFunctional%isNotImplemented(xcnr)) then
@@ -386,6 +387,14 @@ contains
     if (xcnr == xcFunctional%HYB_B3LYP) write(*, '(A)') 'Global hybrid: B3LYP'
     if (xcnr == xcFunctional%CAMY_B3LYP) write(*, '(A)') 'CAM: CAMY-B3LYP'
     if (xcnr == xcFunctional%CAMY_PBEh) write(*, '(A)') 'CAM: CAMY-PBEh'
+    if (xcnr == xcFunctional%MGGA_TPSS) write(*, '(A)') 'meta-GGA: TPSS'
+    if (xcnr == xcFunctional%MGGA_SCAN) write(*, '(A)') 'meta-GGA: SCAN'
+    if (xcnr == xcFunctional%MGGA_r2SCAN) write(*, '(A)') 'meta-GGA: r2SCAN'
+    if (xcnr == xcFunctional%MGGA_r4SCAN) write(*, '(A)') 'meta-GGA: r4SCAN'
+    if (xcnr == xcFunctional%MGGA_TASK) write(*, '(A)') 'meta-GGA: TASK'
+    if (xcnr == xcFunctional%MGGA_TASK_CC) write(*, '(A)') 'meta-GGA: TASK+CC'
+    if (xcnr == xcFunctional%CAMY_MGGA_wB97M) write(*, '(A)') 'CAMY meta-GGA: wB97M'
+    
 
     write(*, '(A,I6)') 'Max. number of SCF iterations: ', maxiter
     write(*, '(A,ES9.2E2)') 'SCF tolerance [a.u.]: ', scftol
