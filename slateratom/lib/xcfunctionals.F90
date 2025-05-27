@@ -530,7 +530,7 @@ contains
     !! density in libxc compatible format, i.e. rho/(4pi)
     real(dp), allocatable :: rhor(:,:)
 
-    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    !! kinetic energy density in libxc compatible format
     real(dp), allocatable :: rtau(:,:)
 
     !! libxc related objects
@@ -574,7 +574,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     allocate(ex(nn))
     ex(:) = 0.0_dp
@@ -663,7 +663,7 @@ contains
     !! density in libxc compatible format, i.e. rho/(4pi)
     real(dp), allocatable :: rhor(:,:)
 
-    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    !! kinetic energy density in libxc compatible format
     real(dp), allocatable :: rtau(:,:)
 
     !! libxc related objects
@@ -707,7 +707,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     allocate(ex(nn))
     ex(:) = 0.0_dp
@@ -796,7 +796,7 @@ contains
     !! density in libxc compatible format, i.e. rho/(4pi)
     real(dp), allocatable :: rhor(:,:)
 
-    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    !! kinetic energy density in libxc compatible format
     real(dp), allocatable :: rtau(:,:)
 
     !! libxc related objects
@@ -840,7 +840,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     allocate(ex(nn))
     ex(:) = 0.0_dp
@@ -929,7 +929,7 @@ contains
     !! density in libxc compatible format, i.e. rho/(4pi)
     real(dp), allocatable :: rhor(:,:)
 
-    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    !! kinetic energy density in libxc compatible format, i.e. tau
     real(dp), allocatable :: rtau(:,:)
 
     !! libxc related objects
@@ -973,7 +973,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     allocate(ex(nn))
     ex(:) = 0.0_dp
@@ -1096,7 +1096,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     allocate(ex(nn))
     ex(:) = 0.0_dp
@@ -1180,7 +1180,7 @@ contains
     !! density in libxc compatible format, i.e. rho/(4pi)
     real(dp), allocatable :: rhor(:,:)
 
-    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    !! kinetic energy density in libxc compatible format
     real(dp), allocatable :: rtau(:,:)
 
     !! libxc related objects
@@ -1224,7 +1224,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     allocate(ex(nn))
     ex(:) = 0.0_dp
@@ -1770,7 +1770,7 @@ contains
     !! density in libxc compatible format, i.e. rho/(4pi)
     real(dp), allocatable :: rhor(:,:)
 
-    !! kinetic energy density in libxc compatible format, i.e. tau/(4pi)
+    !! kinetic energy density in libxc compatible format
     real(dp), allocatable :: rtau(:,:)
 
     !! exc energy density on grid
@@ -1821,7 +1821,7 @@ contains
     rhor(:,:) = transpose(rho) * rec4pi
 
     allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau) * rec4pi
+    rtau(:,:) = transpose(tau)
 
     ! dummy
     allocate(lapl(2, nn))

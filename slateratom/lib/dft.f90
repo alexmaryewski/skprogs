@@ -386,20 +386,20 @@ contains
 
       exc_matrixelement(1) = exc_matrixelement(1) - weight(ii) * vxc(ii, 1) * basis
       exc_matrixelement(2) = exc_matrixelement(2) - weight(ii) * vxc(ii, 2) * basis
+    end do
 
-      if (xcFunctional%isMGGA(xcnr)) then
-        ! GKS meta-GGA basis is the product of gradients of basis functions
-        ! basis = basis_1st_times_basis_1st_times_r2(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))
-
+    if (xcFunctional%isMGGA(xcnr)) then
+      do ii = 1, num_mesh_points
+        ! GKS meta-GGA basis is a product of gradients of basis functions
         basis = basis_1st_times_basis_1st_times_r2(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))&
             & + basis_times_basis(alpha1, poly1, alpha2, poly2, ll, abcissa(ii))&
             & * (ll * (ll + 1))
 
         exc_matrixelement(1) = exc_matrixelement(1) - weight(ii) * vtau(ii, 1) * basis * 0.5_dp
         exc_matrixelement(2) = exc_matrixelement(2) - weight(ii) * vtau(ii, 2) * basis * 0.5_dp
-      end if
-    end do
-
+      end do
+    end if
+    
   end subroutine dft_exc_matrixelement
 
 

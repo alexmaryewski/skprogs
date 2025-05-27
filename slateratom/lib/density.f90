@@ -2,6 +2,7 @@
 module density
 
   use common_accuracy, only : dp
+  use common_constants, only : rec4pi
   use utilities, only : fak
 
   implicit none
@@ -291,7 +292,7 @@ contains
     end do
 
     ! normalize tau
-    tau_at_point = tau_at_point * 0.5_dp
+    tau_at_point = tau_at_point * 0.5_dp * rec4pi
 
   end function tau_at_point
 
