@@ -151,7 +151,6 @@ program HFAtom
   if (.not. (xcnr == xcFunctional%HF_Exchange)) then
     ! SAP potential
     call sap_start_pot(abcissa, nuc, vxc)
-    ! call thomas_fermi_start_pot(abcissa, num_mesh_points, nuc, vxc)
   end if
 
   ! build initial fock matrix, core hamiltonian only

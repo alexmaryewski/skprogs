@@ -251,7 +251,7 @@ contains
       call getExcVxc_MGGA_TASK_CC(abcissa, dz, dzdr, rho, drho, sigma, tau, exc, vxc, vtau)
     case(xcFunctional%CAMY_MGGA_wB97M)
       call getExcVxc_CAMY_MGGA_wB97M(abcissa, dz, dzdr, rho, drho, sigma, tau, omega, camAlpha,&
-          & camBeta, exc, vxc, vtau)
+      & camBeta, exc, vxc, vtau)
     case default
       write(*, '(A,I2,A)') 'XCNR=', xcnr, ' not implemented!'
       stop

@@ -175,14 +175,15 @@ contains
     if (iScf == 0) then
       pot_new(1, :,:,:) = -k_matrix(1, :,:,:)
       pot_new(2, :,:,:) = -k_matrix(2, :,:,:)
+      ! for the Thomas-Fermi guess
+      ! pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
+      ! pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
     else
       pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
       pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
     end if
 
-    ! for the Thomas-Fermi guess
-    ! pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
-    ! pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
+
 
     ! mixer
     allocate(pot_diff, mold=pot_old)

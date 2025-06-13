@@ -13,7 +13,7 @@ SUPPORTED_FUNCTIONALS = {'lda' : 1, 'pbe' : 2, 'blyp' : 3, 'lcy-pbe' : 4,
                          'lcy-bnl' : 5, 'pbe0' : 6, 'b3lyp' : 7,
                          'camy-b3lyp' : 8, 'camy-pbeh' : 9, 'tpss': 10,
                          'scan': 11, 'r2scan': 12, 'r4scan': 13, 'task': 14,
-                         'task+cc': 15}
+                         'task+cc': 15, 'ywb97m': 16}
 
 INPUT_FILE = "sktwocnt.in"
 STDOUT_FILE = "output"
@@ -135,7 +135,7 @@ class SktwocntInput:
                                                 iatom)
         xcn = self._functional.type
         if xcn in ('lcy-bnl', 'lcy-pbe', 'pbe0', 'b3lyp', 'camy-b3lyp',
-                   'camy-pbeh'):
+                   'camy-pbeh', 'ywb97m'):
             atomfiles.dens_wavefuncs = self._store_dens_wavefuncs(
                 workdir, atomdata.dens_wavefuncs, iatom)
         atomfiles.occshells = atomdata.occshells
@@ -229,7 +229,7 @@ class SktwocntInput:
             fp.write("{:f}\n".format(self._functional.alpha))
             fp.write("{:s}\n".format(becke))
         # CAM functionals
-        elif self._functional.type in ('camy-b3lyp', 'camy-pbeh'):
+        elif self._functional.type in ('camy-b3lyp', 'camy-pbeh', 'ywb97m'):
             becke = '2000 194 11 1.0'
             fp.write("{:f} {:f} {:f}\n".format(self._functional.omega,
                                                self._functional.alpha,
@@ -245,7 +245,7 @@ class SktwocntInput:
 
     def _write_twocnt_atom_block(self, fp, atomfiles):
         if self._functional.type in ('lcy-bnl', 'lcy-pbe', 'pbe0', 'b3lyp',
-                                     'camy-b3lyp', 'camy-pbeh'):
+                                     'camy-b3lyp', 'camy-pbeh', 'ywb97m'):
             fp.write("{:d} {:d}\n".format(len(atomfiles.wavefuncs),
                                           len(atomfiles.dens_wavefuncs)))
         else:
@@ -255,7 +255,7 @@ class SktwocntInput:
             fp.write("'{}' {:d}\n".format(wavefuncfile, ll))
 
         if self._functional.type in ('lcy-bnl', 'lcy-pbe', 'pbe0', 'b3lyp',
-                                     'camy-b3lyp', 'camy-pbeh'):
+                                     'camy-b3lyp', 'camy-pbeh', 'ywb97m'):
             occdict = {}
             for xx in atomfiles.occshells:
                 occdict[xx[0]] = xx[1]

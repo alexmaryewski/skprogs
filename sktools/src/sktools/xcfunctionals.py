@@ -97,6 +97,46 @@ class XCCAMYB3LYP(sc.ClassDict):
         return myself
 
 
+class XCYWB97M(sc.ClassDict):
+    '''Range-separated YwB97M xc-functional.
+
+    Attributes
+    ----------
+    omega (float): range-separation parameter
+    alpha (float): fraction of the global exact HF exchange
+    beta (float): determines (alpha + beta) fraction of long-range HF exchange
+    '''
+
+    @classmethod
+    def fromhsd(cls, root, query):
+        '''Creates instance from a HSD-node and with given query object.'''
+        omega, child = query.getvalue(root, 'omega', conv.float0,
+                                      returnchild=True)
+        if omega <= 0.0:
+            raise hsd.HSDInvalidTagValueException(
+                msg='Invalid rs-parameter {:f}'.format(omega),
+                node=child)
+
+        alpha, child = query.getvalue(root, 'alpha', conv.float0,
+                                      returnchild=True)
+
+        beta, child = query.getvalue(root, 'beta', conv.float0,
+                                     returnchild=True)
+
+        if not alpha + beta > 0.0:
+            raise hsd.HSDInvalidTagValueException(
+                msg='Invalid CAM-parameter combination alpha={:f}, beta={:f}!\n'
+                .format(alpha, beta) +
+                'Should satisfy alpha + beta > 0.0', node=child)
+
+        myself = cls()
+        myself.type = 'ywb97m'
+        myself.omega = omega
+        myself.alpha = alpha
+        myself.beta = beta
+        return myself
+
+
 class XCCAMYPBEH(sc.ClassDict):
     '''Range-separated CAMY-PBEh xc-functional.
 
@@ -316,5 +356,6 @@ XCFUNCTIONALS = {
     'r2scan': XCR2SCAN,
     'r4scan': XCR4SCAN,
     'task': XCTASK,
-    'task+cc': XCTASK_CC
+    'task+cc': XCTASK_CC,
+    'ywb97m': XCYWB97M
 }

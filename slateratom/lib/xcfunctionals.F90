@@ -15,7 +15,7 @@ module xcfunctionals
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
       & XC_GGA_C_LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN, XC_MGGA_X_TASK,&
       & XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC,&
-      & XC_HYB_MGGA_XC_WB97M_V
+      & XC_HYB_MGGA_XC_YWB97M
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
       & xc_f03_gga_exc_vxc, xc_f03_mgga_exc_vxc, xc_f03_func_set_ext_params,&
@@ -24,7 +24,7 @@ module xcfunctionals
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
       & XC_GGA_C_LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN, XC_MGGA_X_TASK,&
       & XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC,&
-      & XC_HYB_MGGA_XC_WB97M_V
+      & XC_HYB_MGGA_XC_YWB97M
 #:endif
 
   implicit none
@@ -1724,7 +1724,7 @@ contains
   end subroutine getExcVxc_CAMY_B3LYP
 
 
-  !> Calculates exc and vxc for the CAMY-wB97M xc-functional.
+  !> Calculates exc and vxc for the wB97M xc-functional with Yukawa screening.
   subroutine getExcVxc_CAMY_MGGA_wB97M(abcissa, dz, dzdr, rho, drho, sigma, tau, omega, camAlpha, camBeta,&
       & exc, vxc, vtau)
 
@@ -1842,16 +1842,16 @@ contains
     allocate(vxclapl(2, nn))
     vxclapl(:,:) = 0.0_dp
 
-    call xc_f03_func_init(xcfunc_xc, XC_HYB_MGGA_XC_WB97M_V, XC_POLARIZED)
-    ! fraction of global HF exchange
+    call xc_f03_func_init(xcfunc_xc, XC_HYB_MGGA_XC_YWB97M, XC_POLARIZED)
     call xc_f03_func_set_ext_params_name(xcfunc_xc, "_alpha", camAlpha + camBeta)
-    ! ! fraction of short-range exchange
     call xc_f03_func_set_ext_params_name(xcfunc_xc, "_beta", -camBeta)
-    ! ! range-separation constant
+    ! cx,00 + alpha = 1 must hold for the UEG limit to be satisfied
+    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_cx00", camBeta)
     call xc_f03_func_set_ext_params_name(xcfunc_xc, "_omega", omega)
 
     call xc_f03_mgga_exc_vxc(xcfunc_xc, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), exc_tmp(1),&
         & vxc_tmp(1, 1), vxcsigma(1, 1), vxclapl(1, 1), vxctau(1, 1))
+    
     exc(:) = exc_tmp
     vxc(:,:) = transpose(vxc_tmp)
     vtau(:,:) = transpose(vxctau)

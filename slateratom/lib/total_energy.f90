@@ -123,7 +123,6 @@ contains
       ! PBE0 with camAlpha * HFX
       hf_x_energy = camAlpha * hf_x_energy
     elseif (xcFunctional%isCAMY(xcnr)) then
-      ! CAMY-B3LYP parameters a=0.20, b=0.72, c=0.81 (libXC defaults)
       hf_x_energy = hf_ex_energy(kk, pp, max_l, num_alpha, poly_order)
       hf_x_energy_lr = hf_ex_energy(kk_lr, pp, max_l, num_alpha, poly_order)
       hf_x_energy = camAlpha * hf_x_energy

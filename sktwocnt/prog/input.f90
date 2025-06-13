@@ -47,7 +47,8 @@ contains
 
     !! xc-functional type
     !! (1: LDA-PW91, 2: GGA-PBE96, 3: GGA-BLYP, 4: LCY-PBE96, 5: LCY-BNL, 6: PBE0, 7: B3LYP,
-    !! 8: CAMY-B3LYP, 9: CAMY-PBEh, 10: TPSS, 11: SCAN, 12: r2SCAN, 13: r4SCAN, 14: TASK)
+    !! 8: CAMY-B3LYP, 9: CAMY-PBEh, 10: TPSS, 11: SCAN, 12: r2SCAN, 13: r4SCAN, 14: TASK,
+    !! 15: TASK+CC, 16: YWB97M)
     integer :: iXC
 
     !! potential data columns, summed up in order to receive the total atomic potential
@@ -83,38 +84,19 @@ contains
           & iline)
     end select
 
-    select case (iXC)
-    case(xcFunctional%LDA_PW91)
-      ! LDA-PW91
-    case(xcFunctional%GGA_PBE96)
-      ! GGA-PBE96
-    case(xcFunctional%GGA_BLYP)
-      ! GGA-BLYP
-    case(xcFunctional%LCY_PBE96)
-      ! LCY-PBE96 (purely long-range corrected)
-      inp%tLC = .true.
-    case(xcFunctional%LCY_BNL)
-      ! LCY-BNL (purely long-range corrected)
-      inp%tLC = .true.
-    case(xcFunctional%HYB_PBE0)
-      ! PBE0 (global hybrid)
-      inp%tGlobalHybrid = .true.
-    case(xcFunctional%HYB_B3LYP)
-      ! B3LYP (global hybrid)
-      inp%tGlobalHybrid = .true.
-    case(xcFunctional%CAMY_B3LYP)
-      ! CAMY-B3LYP (general CAM form)
-      inp%tCam = .true.
-    case(xcFunctional%CAMY_PBEh)
-      ! CAMY-PBEh (general CAM form)
-      inp%tCam = .true.
-    case(xcFunctional%MGGA_TPSS, xcFunctional%MGGA_SCAN, xcFunctional%MGGA_r2SCAN,&
-        & xcFunctional%MGGA_r4SCAN, xcFunctional%MGGA_TASK, xcFunctional%MGGA_TASK_CC)
-      inp%tMGGA = .true.
-    case default
-      call error_("Unknown exchange-correlation functional!", fname, line, iline)
-    end select
     inp%iXC = iXC
+    if (xcFunctional%isNotImplemented(iXC)) then
+      call error_("Unknown exchange-correlation functional!", fname, line, iline)
+    end if
+    inp%tLC = xcFunctional%isLongRangeCorrected(iXC)
+    inp%tGlobalHybrid = xcFunctional%isGlobalHybrid(iXC)
+    inp%tCam = xcFunctional%isCAMY(iXC)
+    inp%tMGGA = xcFunctional%isMGGA(iXC)
+
+    if (inp%tMGGA .and. .not. inp%tDensitySuperpos) then
+      call error_("mGGA functionals are only supported in the density superposition mode!", fname,&
+          & line, iline)
+    end if
 
     if (inp%iXC == xcFunctional%HYB_B3LYP) then
       ! 20% fraction of HFX hard-coded at the moment
