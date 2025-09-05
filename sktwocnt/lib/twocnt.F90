@@ -673,13 +673,14 @@ contains
         allocate(tauval(nGrid))
         tauval(:) = atom1%tau%getValue(r1) + atom2%tau%getValue(r2)
         tau = getLibxcTau(tauval)
-        ! wB97M is a one piece xc functional 
+
         if (iXC /= xcFunctional%CAMY_MGGA_wB97M) then
           allocate(vxtau(nGrid), source=0.0_dp)
           ! TASK has only LDA correlation
           if (iXC /= xcFunctional%MGGA_TASK) then
             allocate(vctau(nGrid), source=0.0_dp)
           end if
+        ! wB97M is a one piece xc functional 
         else
           allocate(vxctau(nGrid), source=0.0_dp)
         end if
@@ -718,7 +719,8 @@ contains
         potval = vx + vc + divvx + divvc
       ! 10: MGGA-TPSS, 11: MGGA-SCAN, 12: MGGA-r2SCAN, 13: MGGA-r4SCAN 14: MGGA-TASK,
       ! 15: MGGA-TASK+CC
-      case(10:15)
+      case(xcFunctional%MGGA_TPSS, xcFunctional%MGGA_SCAN, xcFunctional%MGGA_r2SCAN,&
+            & xcFunctional%r4SCAN, xcFunctional%MGGA_TASK, xcFunctional%MGGA_TASK_CC)
         ! MGGA exchange
         call xc_f03_mgga_vxc(xcfunc_x, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1), vx(1),&
             & vxsigma(1), vlapl(1), vxtau(1))
@@ -776,8 +778,9 @@ contains
         call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxcsigma,&
             & divvxc)
         potval = vxc + divvxc
+      ! 16: YwB97M
       case(16)
-        ! MGGA xc
+        ! semilocal part only
         call xc_f03_mgga_vxc(xcfunc_xc, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1), vxc(1),&
             & vxcsigma(1), vlapl(1), vxctau(1))
         call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxcsigma, divvxc)
@@ -1158,6 +1161,7 @@ contains
     !! resulting Hamiltonian matrix element
     real(dp) :: res
 
+    ! TODO: wrong expression, fix
     if (allocated(pot_tau)) then
       res = sum((rad1 * spher1)&
           & * ((- 0.5_dp * rad2pp&
