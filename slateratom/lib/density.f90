@@ -274,7 +274,7 @@ contains
                 tau_at_point = tau_at_point + pp(ii, ll, oo)& 
                     & * (basis_1st_times_basis_1st(alpha(ii, jj), kk, alpha(ii, mm), nn, ii, rr)&
                     & + basis_times_basis(alpha(ii, jj), kk, alpha(ii, mm), nn, ii, rr)&
-                    & * (ii * (ii + 1)) / (rr**2))
+                    & * (ii * (ii + 1)) * (1 / rr**2))
 
               end if
 
@@ -282,7 +282,7 @@ contains
                 tau_at_point = tau_at_point + 2.0_dp * pp(ii, ll, oo)& 
                     & * (basis_1st_times_basis_1st( alpha(ii, jj), kk, alpha(ii, mm), nn, ii, rr)&
                     & + basis_times_basis(alpha(ii, jj), kk, alpha(ii, mm), nn, ii, rr)&
-                    & * (ii * (ii + 1)) / (rr**2))
+                    & * (ii * (ii + 1)) * (1 / rr**2))
               end if
 
             end do
@@ -1073,7 +1073,6 @@ contains
 
 
   !> Evaluates product of 1st derivatives of basis functions and r^2.
-  !! beta and poly2 are the arguments of the 2nd basis.
   pure function basis_1st_times_basis_1st_times_r2(alpha, poly1, beta, poly2, ll, rr)
 
     !> basis exponent of 1st basis derivative
@@ -1097,27 +1096,8 @@ contains
     !> product of 1st derivatives of basis functions and r^2
     real(dp) :: basis_1st_times_basis_1st_times_r2
 
-    !> normalization pre-factors
-    real(dp) :: normalization1, normalization2
-
-    !> auxiliary variables
-    integer :: mm, nn
-    real(dp) :: ab, positive, negative
-
-    mm = poly1 + ll
-    nn = poly2 + ll
-    ab = - (alpha + beta)
-
-    normalization1 = (2.0_dp * alpha)**(mm) * sqrt(2.0_dp * alpha) / sqrt(fak(2 * mm))
-    normalization2 = (2.0_dp * beta)**(nn) * sqrt(2.0_dp * beta) / sqrt(fak(2 * nn))
-
-    ! WARNING: without summing negative and positive contributions independently,
-    ! zora becomes completely unstable !
-    positive = real((mm - 1) * (nn - 1), dp) * rr**(mm + nn - 2) + alpha * beta * rr**(mm + nn)
-    negative = (alpha * real(nn - 1, dp) + beta * real(mm - 1, dp)) * rr**(mm + nn - 1)
-
-    basis_1st_times_basis_1st_times_r2 = normalization1 * normalization2&
-        & * (positive - negative) * exp(ab * rr)
+    basis_1st_times_basis_1st_times_r2 = &
+        & basis_1st_times_basis_1st(alpha, poly1, beta, poly2, ll, rr) * (rr ** 2)
 
     if (abs(basis_1st_times_basis_1st_times_r2) < 1.0d-20)&
         & basis_1st_times_basis_1st_times_r2 = 0.0_dp

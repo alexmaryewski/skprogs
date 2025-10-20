@@ -88,7 +88,8 @@ program HFAtom
   ! WARNING: too high number of grid points may
   ! break the Broyden mixer
   if (xcFunctional%isMGGA(xcnr)) then
-    num_mesh_points = num_mesh_points + 500
+    num_mesh_points = num_mesh_points + 1000
+    ! num_mesh_points = num_mesh_points + 500
   end if
 
   call echo_input(nuc, max_l, occ_shells, maxiter, scftol, poly_order, num_alpha, alpha, conf_type,&

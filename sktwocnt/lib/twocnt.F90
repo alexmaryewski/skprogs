@@ -720,7 +720,7 @@ contains
       ! 10: MGGA-TPSS, 11: MGGA-SCAN, 12: MGGA-r2SCAN, 13: MGGA-r4SCAN 14: MGGA-TASK,
       ! 15: MGGA-TASK+CC
       case(xcFunctional%MGGA_TPSS, xcFunctional%MGGA_SCAN, xcFunctional%MGGA_r2SCAN,&
-            & xcFunctional%r4SCAN, xcFunctional%MGGA_TASK, xcFunctional%MGGA_TASK_CC)
+            & xcFunctional%MGGA_r4SCAN, xcFunctional%MGGA_TASK, xcFunctional%MGGA_TASK_CC)
         ! MGGA exchange
         call xc_f03_mgga_vxc(xcfunc_x, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1), vx(1),&
             & vxsigma(1), vlapl(1), vxtau(1))
