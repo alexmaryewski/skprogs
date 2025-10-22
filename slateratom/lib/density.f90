@@ -862,66 +862,6 @@ contains
   end function basis_times_basis_times_r2
 
 
-  !> Evaluates product of two primitive Slater basis functions with r^(-2) at radial point in space.
-  !! r^(-2)r^(m-1)*e^(-alpha*r)*r^(n-1)*exp(-beta*r) = r^(m+n-2)*exp(-(alpha+beta)*r)
-  ! pure function basis_times_basis_times_rminus2(alpha, poly1, beta, poly2, ll, rr)
-
-  !   !> basis exponent of 1st basis
-  !   real(dp), intent(in) :: alpha
-
-  !   !> highest polynomial order in 1st basis shell
-  !   integer, intent(in) :: poly1
-
-  !   !> basis exponent of 2nd basis
-  !   real(dp), intent(in) :: beta
-
-  !   !> highest polynomial order in 2nd basis shell
-  !   integer, intent(in) :: poly2
-
-  !   !> angular momentum
-  !   integer, intent(in) :: ll
-
-  !   !> radial point in space, i.e. abcissa
-  !   real(dp), intent(in) :: rr
-
-  !   !> product of two primitive Slater basis functions at a radial point in space
-  !   real(dp) :: basis_times_basis_times_rminus2
-
-  !   !> normalization pre-factors
-  !   real(dp) :: normalization1, normalization2
-
-  !   !! auxiliary variables
-  !   integer :: mm, nn
-  !   real(dp) :: ab
-
-  !   mm = poly1 + ll
-  !   nn = poly2 + ll
-  !   ab = -(alpha + beta)
-
-  !   normalization1 = (2.0_dp * alpha)**mm * sqrt(2.0_dp * alpha) / sqrt(fak(2 * mm))
-  !   normalization2 = (2.0_dp * beta)**nn * sqrt(2.0_dp * beta) / sqrt(fak(2 * nn))
-
-  !   ! catch 0^0
-  !   if ((rr == 0.0_dp) .and. ((mm + nn - 4) == 0)) then
-  !     basis_times_basis_times_rminus2 = normalization1 * normalization2 * exp(ab * rr)
-  !   else
-  !     basis_times_basis_times_rminus2 = normalization1 * normalization2 * rr**(mm + nn - 4)&
-  !         & * exp(ab * rr)
-  !   end if
-
-  !   ! NOTE: there are cases where (mm + n - 4) < 0, resulting in singularity (for example, in the
-  !   ! calculation of the kinetic energy density of a product of 1s-orbitals). This, however, does
-  !   ! not matter numerically, because the product is later multiplied with \lambda (\lambda + 1),
-  !   ! which is zero in such cases, resulting in no numerical artifacts. The results of the
-  !   ! calculations that rely on this function were tested against NWChem 7.2.2. (binary distribution
-  !   ! from conda-forge), and those usually agree up to the 10^(-4) Hartree in total energies for
-  !   ! very large basis sets.
-
-  !   if (abs(basis_times_basis_times_rminus2) < 1.0e-20_dp) basis_times_basis_times_rminus2 = 0.0_dp
-
-  ! end function basis_times_basis_times_rminus2
-
-
   !> Evaluates product of a basis function with 1st derivative of another basis function and r^2.
   !! beta and poly2 are the arguments of the derivative.
   pure function basis_times_basis_1st_times_r2(alpha, poly1, beta, poly2, ll, rr)
