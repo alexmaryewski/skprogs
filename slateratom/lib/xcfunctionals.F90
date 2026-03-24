@@ -9,15 +9,19 @@ module xcfunctionals
   use utilities, only : zeroOutCpotOfEmptyDensitySpinChannels
 #:if LIBXC_VERSION_MAJOR == 6
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
-      & xc_f03_gga_exc_vxc, xc_f03_func_set_ext_params, XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW,&
-      & XC_GGA_X_PBE, XC_GGA_X_B88, XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP,&
-      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE, XC_GGA_C_LYP, XC_POLARIZED
+      & xc_f03_gga_exc_vxc, xc_f03_func_set_ext_params xc_f03_func_set_ext_params_name,&
+      & XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_X_B88, XC_GGA_X_SFAT_PBE,&
+      & XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE, XC_GGA_C_LYP, XC_HYB_GGA_XC_WB97,&
+      & XC_HYB_GGA_XC_WB97X, XC_HYB_GGA_XC_WB97X_D, XC_HYB_GGA_XC_WB97X_D3, XC_HYB_GGA_XC_WB97X_V,&
+      & XC_POLARIZED
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
-      & xc_f03_gga_exc_vxc, xc_f03_func_set_ext_params, XC_POLARIZED
+      & xc_f03_gga_exc_vxc, xc_f03_func_set_ext_params, xc_f03_func_set_ext_params_name,&
+      & XC_POLARIZED
   use xc_f03_funcs_m, only : XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_X_B88,&
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
-      & XC_GGA_C_LYP
+      & XC_GGA_C_LYP, XC_HYB_GGA_XC_WB97, XC_HYB_GGA_XC_WB97X, XC_HYB_GGA_XC_WB97X_D, &
+      & XC_HYB_GGA_XC_WB97X_D3, XC_HYB_GGA_XC_WB97X_V
 #:endif
 
   implicit none
@@ -29,6 +33,7 @@ module xcfunctionals
   public :: getExcVxc_LCY_PBE96, getExcVxc_LCY_BNL
   public :: getExcVxc_HYB_B3LYP, getExcVxc_HYB_PBE0
   public :: getExcVxc_CAMY_B3LYP, getExcVxc_CAMY_PBEh
+  public :: getExcVxc_wB97
 
 
   interface libxcVxcToInternalVxc
@@ -73,6 +78,21 @@ module xcfunctionals
 
     !> CAMY-PBEh
     integer :: CAMY_PBEh = 10
+    
+    !> wB97
+    integer :: wB97 = 11
+    
+    !> wB97X
+    integer :: wB97X = 12
+    
+    !> wB97X_D
+    integer :: wB97X_D = 13
+    
+    !> wB97X_D3
+    integer :: wB97X_D3 = 14
+
+    !> wB97X_V
+    integer :: wB97X_V = 15
 
   contains
 
@@ -81,8 +101,9 @@ module xcfunctionals
     procedure :: isGlobalHybrid => TXcFunctionalsEnum_isGlobalHybrid
     procedure :: isLongRangeCorrected => TXcFunctionalsEnum_isLongRangeCorrected
     procedure :: isCAMY => TXcFunctionalsEnum_isCAMY
+    procedure :: hasErfRangeSeparation => TXcFunctionalsEnum_hasErfRangeSeparation
     procedure :: isNotImplemented => TXcFunctionalsEnum_isNotImplemented
-
+    
   end type TXcFunctionalsEnum
 
 
@@ -181,11 +202,33 @@ contains
 
     isCamy = .false.
 
-    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh) then
+    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh .or. xcnr == this%wB97 &
+        & .or. xcnr == this%wB97X .or. xcnr == this%wB97X_D .or. xcnr == this%wB97X_D3 &
+        & .or. xcnr == this%wB97X_V) then
       isCamy = .true.
     end if
 
   end function TXcFunctionalsEnum_isCAMY
+
+
+  pure function TXcFunctionalsEnum_hasErfRangeSeparation(this, xcnr) result(hasErfRangeSeparation)
+
+      !> Class instance
+    class(TXcFunctionalsEnum), intent(in) :: this
+
+    !> identifier of exchange-correlation type
+    integer, intent(in) :: xcnr
+
+    !> True if xc-functional has erf-based range separation
+    logical :: hasErfRangeSeparation
+
+    hasErfRangeSeparation = .false.
+    if (xcnr == this%wB97 .or. xcnr == this%wB97X .or. xcnr == this%wB97X_D .or.&
+        & xcnr == this%wB97X_D3 .or. xcnr == this%wB97X_V) then
+      hasErfRangeSeparation = .true.
+    end if
+
+  end function TXcFunctionalsEnum_hasErfRangeSeparation
 
 
   pure function TXcFunctionalsEnum_isNotImplemented(this, xcnr) result(isNotImplemented)
@@ -201,7 +244,7 @@ contains
 
     isNotImplemented = .false.
 
-    if (xcnr < 0 .or. xcnr > 10) then
+    if (xcnr < 0 .or. xcnr > 15) then
       isNotImplemented = .true.
     end if
 
@@ -1011,6 +1054,95 @@ contains
     call xc_f03_func_end(xcfunc_c)
 
   end subroutine getExcVxc_CAMY_PBEh
+
+
+  !> Calculates exc and vxc for the wB97 xc-functional.
+  subroutine getExcVxc_wB97(abcissa, dz, dzdr, rho, drho, sigma, omega, camAlpha, camBeta,&
+      & exc, vxc)
+
+    !> numerical integration abcissas
+    real(dp), intent(in) :: abcissa(:)
+
+    !> step width in linear coordinates
+    real(dp), intent(in) :: dz
+
+    !> dz/dr
+    real(dp), intent(in) :: dzdr(:)
+
+    !> density on grid
+    real(dp), intent(in) :: rho(:,:)
+
+    !> 1st deriv. of density on grid
+    real(dp), intent(in) :: drho(:,:)
+
+    !> contracted gradients of the density
+    real(dp), intent(in), allocatable :: sigma(:,:)
+
+    !> range-separation parameter
+    real(dp), intent(in) :: omega
+
+    !> CAM alpha parameter
+    real(dp), intent(in) :: camAlpha
+
+    !> CAM beta parameter
+    real(dp), intent(in) :: camBeta
+
+    !> exc energy density on grid
+    real(dp), intent(out) :: exc(:)
+
+    !> xc potential on grid
+    real(dp), intent(out) :: vxc(:,:)
+
+    !! density in libxc compatible format, i.e. rho/(4pi)
+    real(dp), allocatable :: rhor(:,:)
+
+    !! exc energy density on grid
+    real(dp), allocatable :: exc_tmp(:)
+
+    !! libxc related objects
+    type(xc_f03_func_t) :: xcfunc_xc
+
+    !! number of density grid points
+    integer(c_size_t) :: nn
+
+    !! exchange and correlation potential on grid
+    real(dp), allocatable :: vxc_tmp(:,:)
+
+    !! first partial derivative of the energy per unit volume in terms of sigma (x+c)
+    real(dp), allocatable :: vxcsigma(:,:)
+
+    nn = size(rho, dim=1)
+    ! divide by 4*pi to catch different normalization of spherical harmonics
+    allocate(rhor(2, nn))
+    rhor(:,:) = transpose(rho) * rec4pi
+
+    allocate(exc_tmp(nn))
+    exc_tmp(:) = 0.0_dp
+
+    allocate(vxc_tmp(2, nn))
+    vxc_tmp(:,:) = 0.0_dp
+
+    allocate(vxcsigma(3, nn))
+    vxcsigma(:,:) = 0.0_dp
+
+    ! default libxc params: HF: 1.0, HF_SR: -1.0, omega: 0.4
+    call xc_f03_func_init(xcfunc_xc, XC_HYB_GGA_XC_WB97, XC_POLARIZED)
+    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_alpha", camAlpha + camBeta)
+    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_beta", -camBeta)
+    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_omega", omega)
+
+    ! exchange + correlation
+    call xc_f03_gga_exc_vxc(xcfunc_xc, nn, rhor(1, 1), sigma(1, 1), exc_tmp(1), vxc_tmp(1, 1),&
+        & vxcsigma(1, 1))
+    exc(:) = exc_tmp
+    vxc(:,:) = transpose(vxc_tmp)
+
+    call libxcVxcToInternalVxc(abcissa, dz, dzdr, drho, vxcsigma, vxc)
+
+    ! finalize libxc objects
+    call xc_f03_func_end(xcfunc_xc)
+
+  end subroutine getExcVxc_wB97
 
 
   !> Converts libXC vxc to our internal representation.

@@ -4,7 +4,7 @@ module coulomb_hfex
   use common_accuracy, only : dp
   use common_anglib, only : realGaunt
   use common_poisson, only : TBeckeGridParams, TBeckeIntegrator, TBeckeIntegrator_init,&
-      & TBeckeIntegrator_setKernelParam, TBeckeIntegrator_precompFdMatrix,&
+      & TBeckeIntegrator_kill, TBeckeIntegrator_setKernelParam, TBeckeIntegrator_precompFdMatrix,&
       & TBeckeIntegrator_buildLU, TBeckeIntegrator_getCoords, TBeckeIntegrator_solveHelmholz
   use utilities, only : fak
   use core_overlap, only : v
@@ -12,8 +12,25 @@ module coulomb_hfex
   implicit none
   private
 
-  public :: coulomb, hfex, hfex_lr
-
+  public :: coulomb, hfex, hfex_lr_yukawa, hfex_lr_erfc, erfc_param
+  
+  real(dp), save :: erfc_param(15,2)= reshape([&       
+    5.618970739, 1/0.3 * 1.107286341, &
+    5.458914583, 1/0.3 * 1.107050429, &
+    5.302621957, 1/0.3 * 1.107018005, &
+   -9.968700816, 1/0.3 * 1.382919648, &
+   -10.339334879, 1/0.3 * 1.382989947, &
+   -9.615678087, 1/0.3 * 1.382874024, &
+    3.437397927, 1/0.3 * 1.876247932, &
+    3.618433747, 1/0.3 * 1.876309649, &
+    4.237846578, 1/0.3 * 2.696014239, &
+    3.905592276, 1/0.3 * 1.876370176, &
+    4.056420347, 1/0.3 * 1.876216171, &
+    4.142574482, 1/0.3 * 1.876344348, &
+    4.195051995, 1/0.3 * 1.876274352, &
+    4.236208264, 1/0.3 * 1.876369580, &
+   -17.286319112, 1/0.3 * 2.291391395 &
+  ],shape(erfc_param),order=[2,1])
 
 contains
 
@@ -246,7 +263,8 @@ contains
 
   !> Builds HF exchange supermatrix (long-range, range-separated version),
   !! see Rev. Mod. Phys. 32, 186 (1960) eqn. 7/8 and eqn. 21
-  subroutine hfex_lr(kk, max_l, num_alpha, alpha, poly_order, problemsize, omega, grid_params)
+  subroutine hfex_lr_yukawa(kk, max_l, num_alpha, alpha, poly_order, problemsize, omega,&
+      & grid_params)
 
     !> Hartree-Fock exchange supermatrix
     real(dp), intent(out) :: kk(0:,:,:,0:,:,:)
@@ -587,7 +605,68 @@ contains
       end do
     end do
 
-  end subroutine hfex_lr
+    ! clean up
+    call TBeckeIntegrator_kill(t_integ)
+
+  end subroutine hfex_lr_yukawa
+
+
+  !> Builds HF exchange supermatrix (long-range error function version),
+  subroutine hfex_lr_erfc(kk_lr, kk, max_l, num_alpha, alpha, poly_order, problemsize, omega,&
+      & grid_params)
+
+    !> Hartree-Fock long range exchange supermatrix
+    real(dp), intent(out) :: kk_lr(0:,:,:,0:,:,:)
+
+    !> Hartree-Fock total exchange supermatrix
+    real(dp), intent(in) :: kk(0:,:,:,0:,:,:)
+
+    !> maximum angular momentum
+    integer, intent(in) :: max_l
+
+    !> number of exponents in each shell
+    integer, intent(in) :: num_alpha(0:)
+
+    !> basis exponents
+    real(dp), intent(in) :: alpha(0:,:)
+
+    !> highest polynomial order + l in each shell
+    integer, intent(in) :: poly_order(0:)
+
+    !> maximum size of the eigenproblem
+    integer, intent(in) :: problemsize
+
+    !> range-separation parameter
+    real(dp), intent(in) :: omega
+
+    !> holds parameters, defining a Becke integration grid
+    type(TBeckeGridParams), intent(in) :: grid_params
+
+    integer :: ii
+    real(dp), allocatable :: tmp(:,:,:,:,:,:)
+    real(dp) :: erfc_exp, erfc_coef
+
+    kk_lr = 0.0_dp
+    allocate(tmp, mold=kk_lr)
+    
+    do ii = 1, size(erfc_param, 1) 
+      tmp = 0.0_dp
+      erfc_coef = erfc_param(ii, 1)
+      erfc_exp = erfc_param(ii, 2)
+      call hfex_lr_yukawa(tmp, max_l, num_alpha, alpha, poly_order, problemsize,& 
+          & erfc_exp * omega, grid_params)
+          
+      kk_lr = kk_lr + erfc_coef * tmp
+      ! tmp = kk - erfc_param(ii, 1) * (kk - tmp)
+      ! kk_lr = kk_lr - erfc_coef * (kk - tmp)
+      ! tmp = kk - erfc_param(ii, 1) * (kk - tmp)
+      
+    end do
+
+    ! kk_lr = kk_lr + kk
+    deallocate(tmp)
+
+  end subroutine hfex_lr_erfc
 
 
   !> Auxiliary function,

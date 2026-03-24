@@ -8,7 +8,7 @@ program HFAtom
   use input, only : read_input_1, read_input_2, echo_input
   use core_overlap, only : overlap, nuclear, kinetic
   use confinement, only : TConf, confType, TPowerConf, TPowerConf_init, TWsConf, TWsConf_init
-  use coulomb_hfex, only : coulomb, hfex, hfex_lr
+  use coulomb_hfex, only : coulomb, hfex, hfex_lr_yukawa, hfex_lr_erfc
   use densitymatrix, only : densmatrix
   use hamiltonian, only : build_hamiltonian
   use diagonalizations, only : diagonalize, diagonalize_overlap
@@ -121,12 +121,16 @@ program HFAtom
   if (xcnr == xcFunctional%HF_Exchange) then
     call hfex(kk, max_l, num_alpha, alpha, poly_order, problemsize)
   elseif (xcFunctional%isLongRangeCorrected(xcnr)) then
-    call hfex_lr(kk_lr, max_l, num_alpha, alpha, poly_order, problemsize, omega, grid_params)
+    call hfex_lr_yukawa(kk_lr, max_l, num_alpha, alpha, poly_order, problemsize, omega, grid_params)
   elseif (xcFunctional%isGlobalHybrid(xcnr)) then
     call hfex(kk, max_l, num_alpha, alpha, poly_order, problemsize)
   elseif (xcFunctional%isCAMY(xcnr)) then
     call hfex(kk, max_l, num_alpha, alpha, poly_order, problemsize)
-    call hfex_lr(kk_lr, max_l, num_alpha, alpha, poly_order, problemsize, omega, grid_params)
+    if (.not. xcFunctional%hasErfRangeSeparation(xcnr)) then
+      call hfex_lr_yukawa(kk_lr, max_l, num_alpha, alpha, poly_order, problemsize, omega, grid_params)
+    else
+      call hfex_lr_erfc(kk_lr, kk, max_l, num_alpha, alpha, poly_order, problemsize, omega, grid_params)
+    end if
   end if
 
   ! convergence flag

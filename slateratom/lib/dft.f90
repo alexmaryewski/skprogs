@@ -6,7 +6,8 @@ module dft
   use common_constants, only : pi, rec4pi
   use xcfunctionals, only : xcFunctional, getExcVxc_LDA_PW91,&
       & getExcVxc_GGA_PBE96, getExcVxc_GGA_BLYP, getExcVxc_LCY_PBE96, getExcVxc_LCY_BNL,&
-      & getExcVxc_HYB_B3LYP, getExcVxc_HYB_PBE0, getExcVxc_CAMY_B3LYP, getExcVxc_CAMY_PBEh
+      & getExcVxc_HYB_B3LYP, getExcVxc_HYB_PBE0, getExcVxc_CAMY_B3LYP, getExcVxc_CAMY_PBEh,&
+      & getExcVxc_wB97
   use density, only : basis, basis_times_basis_times_r2, density_at_point, density_at_point_1st,&
       & density_at_point_2nd
 
@@ -217,6 +218,8 @@ contains
     case(xcFunctional%CAMY_PBEh)
       call getExcVxc_CAMY_PBEh(abcissa, dz, dzdr, rho, drho, sigma, omega, camAlpha, camBeta, exc,&
           & vxc)
+    case(xcFunctional%wB97)
+      call getExcVxc_wB97(abcissa, dz, dzdr, rho, drho, sigma, omega, camAlpha, camBeta, exc, vxc)
     case default
       write(*, '(A,I2,A)') 'XCNR=', xcnr, ' not implemented!'
       stop

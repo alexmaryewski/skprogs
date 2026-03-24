@@ -107,6 +107,21 @@ contains
     case(xcFunctional%CAMY_PBEh)
       ! CAMY-PBEh (general CAM form)
       inp%tCam = .true.
+    case(xcFunctional%wB97)
+      ! wB97 (general CAM form)
+      inp%tCam = .true.
+    case(xcFunctional%wB97X)
+      ! wB97X (general CAM form)
+      inp%tCam = .true.
+    case(xcFunctional%wB97X_D)
+      ! wB97X-D (general CAM form)
+      inp%tCam = .true.
+    case(xcFunctional%wB97X_D3)
+      ! wB97X-D3 (general CAM form)
+      inp%tCam = .true.
+    case(xcFunctional%wB97X_V)
+      ! wB97X-V (general CAM form)
+      inp%tCam = .true.
     case default
       call error_("Unknown exchange-correlation functional!", fname, line, iline)
     end select

@@ -17,7 +17,7 @@ module common_poisson
   use common_gridgenerator, only : gengrid1_1, gengrid1_3, gengrid2_3
   use common_coordtrans, only : coordtrans_radial_becke1, coordtrans_radial_becke2
   use common_partition, only : partition_becke_homo
-  use common_anglib, only : initGaunt
+  use common_anglib, only : initGaunt, freeGaunt
   use common_finitedifferences, only : makeHelmholzFDMatrix7P, makePoissonFDMatrix7P
 
   implicit none
@@ -28,6 +28,7 @@ module common_poisson
   public :: TBeckeIntegrator_init, TBeckeIntegrator, TBeckeGridParams, TBeckeIntegrator_buildLU
   public :: TBeckeIntegrator_getCoords, TBeckeIntegrator_setKernelParam
   public :: TBeckeIntegrator_precompFdMatrix
+  public :: TBeckeIntegrator_kill
 
 
   !> Stores finite differences matrix.
@@ -457,6 +458,42 @@ contains
     allocate(this%fdmat%H4(10, beckeGridParams%nRadial, beckeGridParams%ll_max))
 
   end subroutine TBeckeIntegrator_init
+
+
+  subroutine TBeckeIntegrator_kill(this)
+
+    !> Becke integrator instance
+    type(TBeckeIntegrator), intent(inout) :: this
+
+    ! deallocate grids
+    call TBeckeGrid_kill(this%beckeGrid(1))
+    call TBeckeGrid_kill(this%beckeGrid(2))
+    call TBeckeGrid_kill(this%beckeGrid(3))
+
+    ! kill Gaunt
+    call freeGaunt()
+
+    ! deallocate quadratures
+    deallocate(this%radialQuadrature%ww)
+    deallocate(this%radialQuadrature%xx)
+    deallocate(this%radialQuadrature%zz)
+    deallocate(this%angularQuadrature%c1)
+    deallocate(this%angularQuadrature%c2)
+    deallocate(this%angularQuadrature%ww)
+
+    ! deallocate FD matrix
+    deallocate(this%fdmat%g)
+    deallocate(this%fdmat%d)
+    deallocate(this%fdmat%b)
+    deallocate(this%fdmat%zi)
+    deallocate(this%fdmat%ipiv2)
+    deallocate(this%fdmat%ipiv4)
+    deallocate(this%fdmat%H1)
+    deallocate(this%fdmat%H2)
+    deallocate(this%fdmat%H3)
+    deallocate(this%fdmat%H4)
+
+  end subroutine TBeckeIntegrator_kill
 
 
   !> Precomputes the LU decompositions.

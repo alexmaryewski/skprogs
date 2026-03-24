@@ -37,6 +37,21 @@ module xcfunctionals
     !> CAMY-PBEh
     integer :: CAMY_PBEh = 9
 
+    !> wB97
+    integer :: wB97 = 10
+    
+    !> wB97X
+    integer :: wB97X = 11
+    
+    !> wB97X_D
+    integer :: wB97X_D = 12
+    
+    !> wB97X_D3
+    integer :: wB97X_D3 = 13
+
+    !> wB97X_V
+    integer :: wB97X_V = 14
+
   contains
 
     procedure :: isLDA => TXcFunctionalsEnum_isLDA
@@ -139,18 +154,40 @@ contains
     !> identifier of exchange-correlation type
     integer, intent(in) :: xcnr
 
-    !> True, if xc-functional index corresponds to a general CAMY functional
+    !> True, if xc-functional index corresponds to a general CAM functional
     logical :: isCamy
 
     isCamy = .false.
 
-    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh) then
+    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh .or. xcnr == this%wB97 &
+        & .or. xcnr == this%wB97X .or. xcnr == this%wB97X_D .or. xcnr == this%wB97X_D3 &
+        & .or. xcnr == this%wB97X_V) then
       isCamy = .true.
     end if
 
   end function TXcFunctionalsEnum_isCAMY
 
 
+  pure function TXcFunctionalsEnum_hasErfRangeSeparation(this, xcnr) result(hasErfRangeSeparation)
+
+      !> Class instance
+    class(TXcFunctionalsEnum), intent(in) :: this
+
+    !> identifier of exchange-correlation type
+    integer, intent(in) :: xcnr
+
+    !> True, if xc-functional index corresponds has erf-based range separation
+    logical :: hasErfRangeSeparation
+
+    hasErfRangeSeparation = .false.
+    if (xcnr == this%wB97 .or. xcnr == this%wB97X .or. xcnr == this%wB97X_D .or.&
+        & xcnr == this%wB97X_D3 .or. xcnr == this%wB97X_V) then
+      hasErfRangeSeparation = .true.
+    end if
+
+  end function TXcFunctionalsEnum_hasErfRangeSeparation
+
+  
   pure function TXcFunctionalsEnum_isNotImplemented(this, xcnr) result(isNotImplemented)
 
     !> Class instance
@@ -164,7 +201,7 @@ contains
 
     isNotImplemented = .false.
 
-    if (xcnr < 0 .or. xcnr > 9) then
+    if (xcnr < 0 .or. xcnr > 14) then
       isNotImplemented = .true.
     end if
 

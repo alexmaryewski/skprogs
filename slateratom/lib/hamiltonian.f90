@@ -166,13 +166,7 @@ contains
       call build_hf_ex_matrix(kk_lr, pp, max_l, num_alpha, poly_order, k_matrix2)
       call build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
           & weight, vxc, k_matrix3)
-      if (xcnr == xcFunctional%CAMY_B3LYP) then
-        ! CAMY-B3LYP parameters (libXC defaults)
-        k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
-      elseif (xcnr == xcFunctional%CAMY_PBEh) then
-        ! CAMY-PBEh
-        k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
-      end if
+      k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
     end if
 
     ! build mixer input

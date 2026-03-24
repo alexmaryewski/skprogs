@@ -125,17 +125,10 @@ contains
     elseif (xcFunctional%isCAMY(xcnr)) then
       hf_x_energy = hf_ex_energy(kk, pp, max_l, num_alpha, poly_order)
       hf_x_energy_lr = hf_ex_energy(kk_lr, pp, max_l, num_alpha, poly_order)
-      if (xcnr == xcFunctional%CAMY_B3LYP) then
-        ! CAMY-B3LYP parameters a=0.20, b=0.72, c=0.81 (libXC defaults)
-        hf_x_energy = camAlpha * hf_x_energy
-        hf_x_energy_lr = camBeta * hf_x_energy_lr
-        hf_x_energy = hf_x_energy + hf_x_energy_lr
-      elseif (xcnr == xcFunctional%CAMY_PBEh) then
-        ! CAMY-PBEh
-        hf_x_energy = camAlpha * hf_x_energy
-        hf_x_energy_lr = camBeta * hf_x_energy_lr
-        hf_x_energy = hf_x_energy + hf_x_energy_lr
-      end if
+      
+      hf_x_energy = camAlpha * hf_x_energy
+      hf_x_energy_lr = camBeta * hf_x_energy_lr
+      hf_x_energy = hf_x_energy + hf_x_energy_lr
     end if
 
     ! pure HF:

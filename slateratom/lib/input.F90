@@ -116,7 +116,8 @@ contains
 
     write(*, '(A)') 'Enter XC functional:&
         & 0: HF, 1: X-Alpha, 2: LDA-PW91, 3: GGA-PBE96, 4: GGA-BLYP, 5: LCY-PBE96, 6: LCY-BNL,&
-        & 7: PBE0, 8: B3LYP, 9: CAMY-B3LYP, 10: CAMY-PBEh'
+        & 7: PBE0, 8: B3LYP, 9: CAMY-B3LYP, 10: CAMY-PBEh, 11: wB97, 12: wB97X, 13: wB97X-D,&
+        & 14: wB97X-D3, 15: wB97X-V'
     read(*,*) xcnr
 
     if (xcFunctional%isNotImplemented(xcnr)) then
@@ -126,7 +127,7 @@ contains
 
     if (xcFunctional%isLongRangeCorrected(xcnr)) then
       camBeta = 1.0_dp
-      write(*, '(A)') 'Enter range-separation parameter:'
+      write(*, '(A)') 'Enter range-separation parameter (omega):'
       read(*,*) omega
     elseif (xcnr == xcFunctional%HYB_PBE0) then
       ! currently only HYB-PBE0 does support arbitrary HFX portions (HYB-B3LYP does not)
@@ -135,7 +136,7 @@ contains
     elseif (xcnr == xcFunctional%HYB_B3LYP) then
       camAlpha = 0.2_dp
     elseif (xcFunctional%isCAMY(xcnr)) then
-      write(*, '(A)') 'Enter range-separation parameter, CAM alpha, CAM beta:'
+      write(*, '(A)') 'Enter range-separation parameter (omega), CAM alpha, CAM beta:'
       read(*,*) omega, camAlpha, camBeta
     end if
 
