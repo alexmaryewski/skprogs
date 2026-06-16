@@ -176,8 +176,16 @@ contains
     end if
 
     ! build mixer input
-    pot_new(1, :,:,:) = - real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
-    pot_new(2, :,:,:) = - real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
+    if (iScf /= 0) then
+      pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
+      pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
+    else
+      pot_new(1, :,:,:) = -k_matrix(1, :,:,:)
+      pot_new(2, :,:,:) = -k_matrix(2, :,:,:)
+      ! if Thomas-Fermi guess is used:
+      ! pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
+      ! pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
+    end if
 
     ! mixer
     allocate(pot_diff, mold=pot_old)
