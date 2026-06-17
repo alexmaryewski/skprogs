@@ -3,7 +3,7 @@ module hamiltonian
 
   use common_accuracy, only : dp
   use dft, only : dft_exc_matrixelement
-  use mixer, only : TMixer, TMixer_mix
+  use mixer, only : TMixer, TMixer_mix, TMixer_getMixerType
   use zora_routines, only : zora_t_correction
   use xcfunctionals, only : xcFunctional
 
@@ -19,7 +19,7 @@ contains
   !> Main driver routine for Fock matrix build-up. Also calls mixer with potential matrix.
   subroutine build_hamiltonian(pMixer, iScf, tt, uu, nuc, vconf, jj, kk, kk_lr, pp, max_l,&
       & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-      & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+      & pot_old, pot_new, commutator, tZora, ff, camAlpha, camBeta)
 
     !> mixer instances
     type(TMixer), intent(inout) :: pMixer
@@ -86,6 +86,9 @@ contains
 
     !> new potential
     real(dp), intent(out) :: pot_new(:,0:,:,:)
+
+    !> commutator [F,PS]
+    real(dp), intent(out) :: commutator(:, 0:, :, :)
 
     !> true, if zero-order regular approximation for relativistic effects is desired
     logical, intent(in) :: tZora

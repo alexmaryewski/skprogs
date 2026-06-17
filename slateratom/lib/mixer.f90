@@ -7,7 +7,7 @@ module mixer
   implicit none
 
   private
-  public :: TMixer, TMixer_init, TMixer_reset, TMixer_mix, mixerTypes
+  public :: TMixer, TMixer_init, TMixer_getMixerType, TMixer_reset, TMixer_mix, mixerTypes
 
 
   !> Interface type for mixers
@@ -79,6 +79,18 @@ contains
     call move_alloc(pBroyden, this%pBroydenMixer)
 
   end subroutine TMixer_initBroyden
+
+
+  !> Returns mixer type as an int (1: simple, 2: Broyden)
+  pure function TMixer_getMixerType(this) result(res)
+    !> Mixer instance
+    type(TMixer), intent(in) :: this
+
+    integer :: res
+
+    res = this%mixerType
+
+  end function
 
 
   !> Resets the mixer.
