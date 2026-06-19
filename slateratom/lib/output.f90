@@ -292,10 +292,12 @@ contains
 
   !> Writes potentials and mesh info to file on standard (internal) integration mesh;
   !! in principle one could read in the points from another file to have other meshes!
-  subroutine write_densities_file_standard(num_mesh_points, abcissa, weight, rho, drho, ddrho)
+  subroutine write_densities_file_standard(num_mesh_points, abcissa, weight, rho, drho, ddrho,&
+      & tau, writeTau)
 
     real(dp), intent(in) :: abcissa(:), weight(:)
-    real(dp), intent(in) :: rho(:,:), drho(:,:), ddrho(:,:)
+    real(dp), intent(in) :: rho(:,:), drho(:,:), ddrho(:,:), tau(:,:)
+    logical, intent(in) :: writeTau
     integer, intent(in) :: num_mesh_points
     real(dp) :: enumber, zeta, r_seitz
     integer :: ii
@@ -305,7 +307,11 @@ contains
     write(95, '(A)') '# rho and r_seitz are calculated from total density'
     write(95, '(A)') '# zeta and r_seitz only correct of rho > 1d-12'
     write(95, '(A)') ''
-    write(95, '(A)') '# abcissa weight rho drho ddrho zeta r_seitz'
+    if (writeTau) then
+      write(95, '(A)') '# abcissa weight rho drho ddrho zeta r_seitz tau'
+    else
+      write(95, '(A)') '# abcissa weight rho drho ddrho zeta r_seitz'
+    end if
     write(95, '(I0)') num_mesh_points
 
     enumber = 0.0_dp
@@ -326,8 +332,15 @@ contains
         r_seitz = 0.0_dp
       end if
 
-      write(95, '(7ES21.12E3)') abcissa(ii), weight(ii), rho(ii, 1) + rho(ii, 2),&
+      if (writeTau) then
+        write(95, '(8ES21.2E3)') abcissa(ii), weight(ii), rho(ii, 1) + rho(ii, 2),&
+          & drho(ii, 1) + drho(ii, 2), ddrho(ii, 1) + ddrho(ii, 2), zeta, r_seitz,&
+          & tau(ii, 1) + tau(ii, 2)
+      else
+        write(95, '(7ES21.12E3)') abcissa(ii), weight(ii), rho(ii, 1) + rho(ii, 2),&
           & drho(ii, 1) + drho(ii, 2), ddrho(ii, 1) + ddrho(ii, 2), zeta, r_seitz
+      end if
+
       enumber = enumber + weight(ii) * (rho(ii, 1) + rho(ii, 2)) * abcissa(ii)**2
     end do
 

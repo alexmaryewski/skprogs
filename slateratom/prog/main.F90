@@ -146,8 +146,8 @@ program HFAtom
 
   ! kinetic energy, nuclear-electron, and confinement matrix elements which are constant during SCF
   call build_hamiltonian(pMixer, 0, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
-      & poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha, pot_old,&
-      & pot_new, tZora, ff, camAlpha, camBeta)
+      & poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, vtau,&
+      & alpha, pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
   ! self-consistency cycles
   write(*,*) 'Energies in Hartree'
@@ -166,12 +166,12 @@ program HFAtom
 
     ! get electron density, derivatives, exc related potentials and energy densities
     call density_grid(pp, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa, dzdr,&
-        & dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, vxc, exc, xalpha_const)
+        & dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau, vxc, vtau, exc, xalpha_const)
 
     ! build Fock matrix and get total energy during SCF
     call build_hamiltonian(pMixer, iScf, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
-        & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-        & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+        & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, vtau,&
+        & alpha, pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
     if (tZora) then
       call getTotalEnergyZora(tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
@@ -247,7 +247,8 @@ program HFAtom
   call write_potentials_file_standard(num_mesh_points, abcissa, weight, vxc, rho, nuc, pp, max_l,&
       & num_alpha, poly_order, alpha, problemsize)
 
-  call write_densities_file_standard(num_mesh_points, abcissa, weight, rho, drho, ddrho)
+  call write_densities_file_standard(num_mesh_points, abcissa, weight, rho, drho, ddrho, tau,&
+    & xcFunctional%isMGGA(xcnr))
 
   ! write wave functions and eventually invert to have positive starting gradient
   call write_waves_file_standard(num_mesh_points, abcissa, weight, alpha, num_alpha, poly_order,&
