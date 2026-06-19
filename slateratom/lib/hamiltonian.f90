@@ -79,7 +79,7 @@ contains
     real(dp), intent(in) :: vxc(:,:)
 
     !> orbital-dependent tau potential on grid
-    real(dp), intent(out) :: vtau(:,:)
+    real(dp), intent(in) :: vtau(:,:)
 
     !> basis exponents
     real(dp), intent(in) :: alpha(0:,:)
@@ -141,7 +141,7 @@ contains
     end if
 
     ! pure DFT
-    if (xcFunctional%isLDA(xcnr) .or. xcFunctional%isGGA(xcnr)) then
+    if (xcFunctional%isLDA(xcnr) .or. xcFunctional%isGGA(xcnr) .or. xcFunctional%isMGGA(xcnr)) then
       call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
           & weight, vxc, vtau, k_matrix)
     end if
@@ -385,7 +385,7 @@ contains
     real(dp), intent(in) :: vxc(:,:)
 
     !> orbital-dependent tau potential on grid
-    real(dp), intent(out) :: vtau(:,:)
+    real(dp), intent(in) :: vtau(:,:)
 
     !> DFT exchange matrix
     real(dp), intent(out) :: k_matrix(:,0:,:,:)

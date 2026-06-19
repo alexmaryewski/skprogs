@@ -351,7 +351,7 @@ contains
     real(dp), intent(in) :: vxc(:,:)
 
     !> orbital-dependent tau potential on grid
-    real(dp), intent(out) :: vtau(:,:)
+    real(dp), intent(in) :: vtau(:,:)
 
     !> basis exponent of 1st basis
     real(dp), intent(in) :: alpha1

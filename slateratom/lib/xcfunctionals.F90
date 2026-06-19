@@ -119,7 +119,7 @@ module xcfunctionals
   !> Container for enumerated xc-functional types.
   type(TXcFunctionalsEnum), parameter :: xcFunctional = TXcFunctionalsEnum()
 
-  real(dp), parameter :: rhoThreshold = 1e-09
+  real(dp), parameter :: rhoThreshold = 1e-11
 
 contains
 
@@ -1176,8 +1176,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TPSS, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_TPSS, XC_POLARIZED)
-    ! call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
-    ! call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1312,8 +1312,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_SCAN, XC_POLARIZED)
-    ! call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
-    ! call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1969,6 +1969,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_LAK, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_LAK, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
