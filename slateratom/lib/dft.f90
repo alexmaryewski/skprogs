@@ -66,8 +66,9 @@ contains
 
   !> Calculate and store density and density derivatives on radial grid.
   !! Further calculates and stores exchange-correlation potential and energy density on grid.
-  subroutine density_grid(pp, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa, dzdr,&
-      & dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau, vxc, vtau, exc, xalpha_const)
+  subroutine density_grid(pp, max_l, num_alpha, poly_order, alpha,&
+      & num_mesh_points, abcissa, dzdr, dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau,&
+      & vxc, vtau, exc, xalpha_const)
 
     !> density matrix supervector
     real(dp), intent(in) :: pp(:, 0:,:,:)
@@ -199,6 +200,9 @@ contains
     end if
 
     if (xcFunctional%isMGGA(xcnr)) then
+      ! this is a hack for iso-orbital systems (alpha = 0): 
+      ! set tau to exactly the Weizsaecker kinetic energy;
+      ! this is necessary for TASK-derived functionals to not break
       do ii = 1, num_mesh_points
         tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
         tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))

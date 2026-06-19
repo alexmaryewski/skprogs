@@ -251,6 +251,9 @@ contains
     !> auxiliary variables
     integer :: ii, jj, kk, ll, mm, nn, oo, start
 
+    !>
+    logical :: isSingleElectron
+
     tau_at_point = 0.0_dp
 
     do ii = 0, max_l
