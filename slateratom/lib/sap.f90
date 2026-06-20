@@ -44,7 +44,7 @@ contains
     real(dp), allocatable :: sap_data(:, :)
 
     allocate(zeff, mold=abcissa)
-    zeff = 0.0_dp
+    zeff(:) = 0.0_dp
 
     v(:,:) = 0.0_dp
 
