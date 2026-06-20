@@ -52,7 +52,7 @@ contains
 
     ! compute effective charge
     do nexp = 1, size(sap_data, dim=1)
-      zeff(:) = zeff(:) + sap_data(nexp, 2) * erfc(sqrt(sap_data(nexp, 1)) * abcissa)
+      zeff(:) = zeff + sap_data(nexp, 2) * erfc(sqrt(sap_data(nexp, 1)) * abcissa)
     end do
 
     v(:, 1) = v(:, 1) + zeff / abcissa
