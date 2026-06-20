@@ -2294,7 +2294,7 @@ contains
                                     [1033.107971416546, -16.34613409411395]],&
                                     shape=[2, 17]))
     case default
-       call error("Bad atomic number supplied!")
+       call error("Unsupported atomic number supplied!")
     end select
 
    end subroutine get_sap_data
