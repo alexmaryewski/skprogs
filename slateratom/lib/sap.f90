@@ -65,7 +65,7 @@ contains
 
 
   !> Get tabulated SAP data array
-  subroutine get_sap_data(Natom, out)
+  subroutine get_sap_data(zAtom, out)
 
     !> nuclear charge of atom
     integer, intent(in) ::  Natom
