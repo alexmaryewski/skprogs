@@ -1,6 +1,5 @@
 !>  Module for atomic guess through superposition of atomic potentials
 !! (SAP) method
-
 module sap
 
   !> Reference:
