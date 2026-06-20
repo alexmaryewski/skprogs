@@ -68,12 +68,12 @@ contains
   subroutine get_sap_data(zAtom, out)
 
     !> nuclear charge of atom
-    integer, intent(in) ::  Natom
+    integer, intent(in) ::  zAtom
 
     !> output array
     real(dp), intent(out), allocatable:: out(:, :)
 
-    select case (Natom)
+    select case (zAtom)
     case (1)
       allocate(out(4, 2))
       out(:,:) = transpose(reshape([[0.04268788542106363, -0.4185582672035864],&
