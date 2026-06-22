@@ -178,6 +178,9 @@ module globals
   !> true, if zero-order regular approximation for relativistic effects is desired
   logical :: tZora
 
+  !> is the system isoorbital, i.e. all electrons occupy one spatial MO?
+  logical :: tIsoorbital
+
   !> true, if SCF cycle reached convergency
   logical :: tConverged
 

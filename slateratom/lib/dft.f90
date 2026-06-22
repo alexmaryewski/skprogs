@@ -67,8 +67,8 @@ contains
   !> Calculate and store density and density derivatives on radial grid.
   !! Further calculates and stores exchange-correlation potential and energy density on grid.
   subroutine density_grid(pp, max_l, num_alpha, poly_order, alpha,&
-      & num_mesh_points, abcissa, dzdr, dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau,&
-      & vxc, vtau, exc, xalpha_const)
+      & num_mesh_points, tIsoorbital, abcissa, dzdr, dz, xcnr, omega, camAlpha, camBeta, rho,&
+      & drho, ddrho, tau, vxc, vtau, exc, xalpha_const)
 
     !> density matrix supervector
     real(dp), intent(in) :: pp(:, 0:,:,:)
@@ -87,6 +87,9 @@ contains
 
     !> number of numerical integration points
     integer, intent(in) :: num_mesh_points
+
+    !> is the system isoorbital?
+    logical, intent(in) :: tIsoorbital
 
     !> numerical integration abcissas
     real(dp), intent(in) :: abcissa(:)
@@ -200,14 +203,30 @@ contains
     end if
 
     if (xcFunctional%isMGGA(xcnr)) then
-      ! this is a hack for iso-orbital systems (alpha = 0): 
-      ! set tau to exactly the Weizsaecker kinetic energy;
-      ! this is necessary for TASK-derived functionals to not break
+
+      ! for isoorbital systems (alpha = 0), set tau to be exactly
+      ! the von Weizsaecker kinetic energy to ensure numerical stability
+
+      ! if (tIsoorbital) then
+      !   ! tau(:,:) = (abs(transpose(sigma(:,:))) ** 2) / (8.0_dp * transpose(rhor))
+      !   do ii = 1, num_mesh_points
+      !     tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
+      !     tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
+      !   end do
+      ! else
+      !   do ii = 1, num_mesh_points
+      !     tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
+      !     tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
+      !   end do
+      ! end if
+
       do ii = 1, num_mesh_points
-        tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
-        tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
-      end do
+          tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
+          tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
+        end do
+        
     end if
+  
 
     select case (xcnr)
     case(xcFunctional%HF_Exchange)

@@ -131,7 +131,7 @@ module xcfunctionals
 
   ! LAK is the worst offender so far, with 1e-6 necessary
   ! to not break on the hydrogen atom
-  real(dp), parameter :: rhoThresholdLAK = 1e-6
+  real(dp), parameter :: rhoThresholdLAK = 1e-10
 
 contains
 
@@ -1188,8 +1188,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TPSS, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_TPSS, XC_POLARIZED)
-    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
-    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThresholdSCAN)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThresholdSCAN)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&

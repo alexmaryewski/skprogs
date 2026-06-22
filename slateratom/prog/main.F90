@@ -17,7 +17,7 @@ program HFAtom
       & write_waves_file_standard, write_wave_coeffs_file, cusp_values, writeAveragePotential
   use totalenergy, only : getTotalEnergy, getTotalEnergyZora
   use dft, only : check_accuracy, dft_start_pot, density_grid
-  use utilities, only : check_electron_number, check_convergence
+  use utilities, only : check_electron_number, check_convergence, isIsoorbital
   use zora_routines, only : scaled_zora
   use cmdargs, only : parse_command_arguments
   use common_poisson, only : TBeckeGridParams
@@ -71,6 +71,7 @@ program HFAtom
   allocate(qnvalorbs(2, 0:max_l))
 
   call read_input_2(occ, max_l, occ_shells, qnvalorbs)
+  call isIsoorbital(occ, tIsoorbital)
 
   ! fix number of mesh points depending on nuclear charge
   num_mesh_points = 500
@@ -165,8 +166,9 @@ program HFAtom
     call densmatrix(problemsize, max_l, occ, cof, pp)
 
     ! get electron density, derivatives, exc related potentials and energy densities
-    call density_grid(pp, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa, dzdr,&
-        & dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau, vxc, vtau, exc, xalpha_const)
+    call density_grid(pp, max_l, num_alpha, poly_order, alpha, num_mesh_points, tIsoorbital,&
+        & abcissa, dzdr, dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau, vxc, vtau,&
+        & exc, xalpha_const)
 
     ! build Fock matrix and get total energy during SCF
     call build_hamiltonian(pMixer, iScf, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
