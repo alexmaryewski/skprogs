@@ -25,7 +25,7 @@ module xcfunctionals
       & XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC, XC_GGA_C_LYP
 #:endif
 
-#:if (LIBXC_VERSION_MAJOR >= 7) and (LIBXC_VERSION_MINOR >= 1)
+#:if (LIBXC_VERSION_MAJOR > 7) or ((LIBXC_VERSION_MAJOR == 7) and (LIBXC_VERSION_MINOR >= 1))
   use xc_f03_funcs_m, only: XC_MGGA_X_LAK, XC_MGGA_C_LAK
 #:endif
 
@@ -125,13 +125,6 @@ module xcfunctionals
   
   ! Lehtola (10.1021/acs.jctc.3c00183) suggests 1e-11 or higher
   real(dp), parameter :: rhoThreshold = 1e-11
-
-  ! 1e-10 seems to be the magic number that makes SCAN work
-  real(dp), parameter :: rhoThresholdSCAN = 1e-10
-
-  ! LAK is the worst offender so far, with 1e-6 necessary
-  ! to not break on the hydrogen atom
-  real(dp), parameter :: rhoThresholdLAK = 1e-10
 
 contains
 
@@ -1188,8 +1181,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TPSS, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_TPSS, XC_POLARIZED)
-    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThresholdSCAN)
-    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThresholdSCAN)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1324,8 +1317,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_SCAN, XC_POLARIZED)
-    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThresholdSCAN)
-    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThresholdSCAN)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1459,6 +1452,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_R2SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_R2SCAN, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1592,6 +1587,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_R4SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_R2SCAN, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1944,7 +1941,7 @@ contains
     !! (dummy)
     real(dp), allocatable :: vclapl(:,:)
 
-#:if (LIBXC_VERSION_MAJOR >= 7) and (LIBXC_VERSION_MINOR >= 1)
+#:if (LIBXC_VERSION_MAJOR > 7) or ((LIBXC_VERSION_MAJOR == 7) and (LIBXC_VERSION_MINOR >= 1))
     nn = size(rho, dim=1)
     ! divide by 4*pi to catch different normalization of spherical harmonics
     allocate(rhor(2, nn))
@@ -1981,8 +1978,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_LAK, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_LAK, XC_POLARIZED)
-    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThresholdLAK)
-    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThresholdLAK)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&

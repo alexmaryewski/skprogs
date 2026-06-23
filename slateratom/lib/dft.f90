@@ -203,30 +203,11 @@ contains
     end if
 
     if (xcFunctional%isMGGA(xcnr)) then
-
-      ! for isoorbital systems (alpha = 0), set tau to be exactly
-      ! the von Weizsaecker kinetic energy to ensure numerical stability
-
-      ! if (tIsoorbital) then
-      !   ! tau(:,:) = (abs(transpose(sigma(:,:))) ** 2) / (8.0_dp * transpose(rhor))
-      !   do ii = 1, num_mesh_points
-      !     tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
-      !     tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
-      !   end do
-      ! else
-      !   do ii = 1, num_mesh_points
-      !     tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
-      !     tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
-      !   end do
-      ! end if
-
       do ii = 1, num_mesh_points
           tau(ii, 1) = tau_at_point(pp(1, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
           tau(ii, 2) = tau_at_point(pp(2, :,:,:), max_l, num_alpha, poly_order, alpha, abcissa(ii))
         end do
-        
     end if
-  
 
     select case (xcnr)
     case(xcFunctional%HF_Exchange)
