@@ -36,7 +36,7 @@ module twocnt
       & XC_GGA_C_PBE, XC_GGA_X_B88, XC_GGA_C_LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN,& 
       & XC_MGGA_C_SCAN, XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS,&
       & XC_MGGA_C_TPSS, XC_MGGA_C_CC, XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP,&
-      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_HYB_MGGA_XC_YWB97M, XC_UNPOLARIZED, xc_f03_func_set_ext_params
+      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_UNPOLARIZED, xc_f03_func_set_ext_params
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_vxc,&
       & xc_f03_gga_vxc, xc_f03_mgga_vxc, xc_f03_func_set_ext_params, XC_UNPOLARIZED
@@ -44,7 +44,7 @@ module twocnt
       & XC_GGA_C_PBE, XC_GGA_X_B88, XC_GGA_C_LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN,& 
       & XC_MGGA_C_SCAN, XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS,&
       & XC_MGGA_C_TPSS, XC_MGGA_C_CC, XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP,&
-      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_HYB_MGGA_XC_YWB97M
+      & XC_HYB_GGA_XC_CAMY_B3LYP
 #:endif
 
   implicit none
@@ -132,7 +132,7 @@ module twocnt
     !! xc-functional type
     !! (1: LDA-PW91, 2: GGA-PBE96, 3: GGA-BLYP, 4: LCY-PBE96, 5: LCY-BNL, 6: PBE0, 7: B3LYP,
     !! 8: CAMY-B3LYP, 9: CAMY-PBEh, 10: TPSS, 11: SCAN, 12: r2SCAN, 13: r4SCAN, 14: TASK,
-    !! 15: TASK+CC, 16: YWB97M)
+    !! 15: TASK+CC)
     integer :: iXC
 
     !! true, if a global hybrid functional is requested
@@ -327,8 +327,6 @@ contains
     case(xcFunctional%MGGA_TASK_CC)
       call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TASK, XC_UNPOLARIZED)
       call xc_f03_func_init(xcfunc_c, XC_MGGA_C_CC, XC_UNPOLARIZED)
-    case(xcFunctional%CAMY_MGGA_wB97M)
-      call xc_f03_func_init(xcfunc_xc, XC_HYB_MGGA_XC_YWB97M, XC_UNPOLARIZED)
     end select
 
     if (inp%tLC .or. inp%tCam) then
@@ -539,7 +537,7 @@ contains
     !> xc-functional type
     !! (1: LDA-PW91, 2: GGA-PBE96, 3: GGA-BLYP, 4: LCY-PBE96, 5: LCY-BNL, 6: PBE0, 7: B3LYP,
     !! 8: CAMY-B3LYP, 9: CAMY-PBEh, 10: TPSS, 11: SCAN, 12: r2SCAN, 13: r4SCAN, 14: TASK,
-    !! 15: TASK+CC, 16: YWB97M)
+    !! 15: TASK+CC)
     integer, intent(in) :: iXC
 
     !> CAM alpha parameter
@@ -673,16 +671,10 @@ contains
         allocate(tauval(nGrid))
         tauval(:) = atom1%tau%getValue(r1) + atom2%tau%getValue(r2)
         tau = getLibxcTau(tauval)
-
-        if (iXC /= xcFunctional%CAMY_MGGA_wB97M) then
-          allocate(vxtau(nGrid), source=0.0_dp)
-          ! TASK has only LDA correlation
-          if (iXC /= xcFunctional%MGGA_TASK) then
-            allocate(vctau(nGrid), source=0.0_dp)
-          end if
-        ! wB97M is a one piece xc functional 
-        else
-          allocate(vxctau(nGrid), source=0.0_dp)
+        allocate(vxtau(nGrid), source=0.0_dp)
+        ! TASK has only LDA correlation
+        if (iXC /= xcFunctional%MGGA_TASK) then
+          allocate(vctau(nGrid), source=0.0_dp)
         end if
         ! dummy Laplacian
         allocate(lapl(nGrid))
@@ -778,14 +770,6 @@ contains
         call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxcsigma,&
             & divvxc)
         potval = vxc + divvxc
-      ! 16: YwB97M
-      case(16)
-        ! semilocal part only
-        call xc_f03_mgga_vxc(xcfunc_xc, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1), vxc(1),&
-            & vxcsigma(1), vlapl(1), vxctau(1))
-        call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxcsigma, divvxc)
-        potval = vxc + divvxc
-        taupotval = vxctau
       end select
       
       ! add nuclear and coulomb potential to obtain the effective potential

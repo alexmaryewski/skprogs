@@ -21,7 +21,7 @@ SUPPORTED_FUNCTIONALS = {'lda' : 2, 'pbe' : 3, 'blyp' : 4, 'lcy-pbe' : 5,
                          'lcy-bnl' : 6, 'pbe0' : 7, 'b3lyp' : 8,
                          'camy-b3lyp' : 9, 'camy-pbeh' : 10, "tpss": 11,
                          'scan': 12, 'r2scan': 13, 'r4scan': 14, 'task': 15,
-                         'task+cc': 16, 'ywb97m': 17}
+                         'task+cc': 16}
 
 SUPPORTED_MIXERS = {1: 'simple', 2: 'broyden', 3: 'diis'}
 
@@ -193,12 +193,12 @@ class SlateratomInput:
             xcfkey = functional.type
             self._functional = SUPPORTED_FUNCTIONALS[xcfkey]
 
-            if xcfkey in ('lcy-pbe', 'lcy-bnl', 'camy-b3lyp', 'camy-pbeh', 'ywb97m'):
+            if xcfkey in ('lcy-pbe', 'lcy-bnl', 'camy-b3lyp', 'camy-pbeh'):
                 self._omega = functional.omega
             else:
                 self._omega = None
 
-            if xcfkey in ('camy-b3lyp', 'camy-pbeh', 'ywb97m'):
+            if xcfkey in ('camy-b3lyp', 'camy-pbeh'):
                 self._alpha = functional.alpha
                 self._beta = functional.beta
             elif xcfkey == 'pbe0':
@@ -315,7 +315,7 @@ class SlateratomInput:
                 "2000 194 11 1.0 \t{:s} Becke integrator settings"
                 .format(self._COMMENT)]
         # CAM functionals
-        elif xctype in ('camy-b3lyp', 'camy-pbeh', 'ywb97m'):
+        elif xctype in ('camy-b3lyp', 'camy-pbeh'):
             out += [
                 "{:g} {:g} {:g} \t{:s} ".format(
                     self._omega, self._alpha, self._beta, self._COMMENT) + \

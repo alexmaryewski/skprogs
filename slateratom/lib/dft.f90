@@ -8,7 +8,7 @@ module dft
       & getExcVxc_GGA_PBE96, getExcVxc_GGA_BLYP, getExcVxc_LCY_PBE96, getExcVxc_LCY_BNL,&
       & getExcVxc_HYB_B3LYP, getExcVxc_HYB_PBE0, getExcVxc_CAMY_B3LYP, getExcVxc_CAMY_PBEh, &
       & getExcVxc_MGGA_TPSS, getExcVxc_MGGA_SCAN, getExcVxc_MGGA_r2SCAN, getExcVxc_MGGA_r4SCAN,&
-      & getExcVxc_MGGA_TASK, getExcVxc_MGGA_TASK_CC, getExcVxc_CAMY_MGGA_wB97M
+      & getExcVxc_MGGA_TASK, getExcVxc_MGGA_TASK_CC
   use density, only : basis, basis_times_basis_times_r2, density_at_point, density_at_point_1st,&
       & density_at_point_2nd, tau_at_point, basis_1st_times_basis_1st_times_r2,&
       & basis_1st_times_basis_1st, basis_times_basis
@@ -249,9 +249,6 @@ contains
       call getExcVxc_MGGA_TASK(abcissa, dz, dzdr, rho, drho, sigma, tau, exc, vxc, vtau)
     case(xcFunctional%MGGA_TASK_CC)
       call getExcVxc_MGGA_TASK_CC(abcissa, dz, dzdr, rho, drho, sigma, tau, exc, vxc, vtau)
-    case(xcFunctional%CAMY_MGGA_wB97M)
-      call getExcVxc_CAMY_MGGA_wB97M(abcissa, dz, dzdr, rho, drho, sigma, tau, omega, camAlpha,&
-      & camBeta, exc, vxc, vtau)
     case default
       write(*, '(A,I2,A)') 'XCNR=', xcnr, ' not implemented!'
       stop

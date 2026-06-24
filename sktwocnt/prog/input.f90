@@ -48,7 +48,7 @@ contains
     !! xc-functional type
     !! (1: LDA-PW91, 2: GGA-PBE96, 3: GGA-BLYP, 4: LCY-PBE96, 5: LCY-BNL, 6: PBE0, 7: B3LYP,
     !! 8: CAMY-B3LYP, 9: CAMY-PBEh, 10: TPSS, 11: SCAN, 12: r2SCAN, 13: r4SCAN, 14: TASK,
-    !! 15: TASK+CC, 16: YWB97M)
+    !! 15: TASK+CC)
     integer :: iXC
 
     !! potential data columns, summed up in order to receive the total atomic potential

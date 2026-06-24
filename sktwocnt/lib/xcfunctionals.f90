@@ -55,9 +55,6 @@ module xcfunctionals
     !> TASK+CC
     integer :: MGGA_TASK_CC = 15
 
-    !> CAMY-MGGA-WB97M
-    integer :: CAMY_MGGA_wB97M = 16
-
   contains
 
     procedure :: isLDA => TXcFunctionalsEnum_isLDA
@@ -128,7 +125,7 @@ contains
 
     if (xcnr == this%MGGA_TPSS .or. xcnr == this%MGGA_SCAN .or. xcnr == this%MGGA_r2SCAN&
         & .or. xcnr == this%MGGA_r4SCAN .or. xcnr == this%MGGA_TASK&
-        & .or. xcnr == this%MGGA_TASK_CC .or. xcnr == this%CAMY_MGGA_wB97M) then
+        & .or. xcnr == this%MGGA_TASK_CC) then
       isMGGA = .true.
     end if
 
@@ -188,8 +185,7 @@ contains
 
     isCamy = .false.
 
-    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh &
-        & .or. xcnr == this%CAMY_MGGA_wB97M) then
+    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh) then
       isCamy = .true.
     end if
 

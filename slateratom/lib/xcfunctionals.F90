@@ -10,21 +10,19 @@ module xcfunctionals
 #:if LIBXC_VERSION_MAJOR == 6
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
       & xc_f03_gga_exc_vxc, xc_f03_mgga_exc_vxc, xc_f03_func_set_ext_params,&
-      & xc_f03_func_set_ext_params_name, XC_POLARIZED,&
+      & xc_f03_func_set_ext_params_name, XC_POLARIZED, xc_f03_func_set_dens_threshold,&
       & XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_X_B88,&
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
       & XC_GGA_C_LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN, XC_MGGA_X_TASK,&
-      & XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC,&
-      & XC_HYB_MGGA_XC_YWB97M
+      & XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
       & xc_f03_gga_exc_vxc, xc_f03_mgga_exc_vxc, xc_f03_func_set_ext_params,&
-      & xc_f03_func_set_ext_params_name, XC_POLARIZED
+      & xc_f03_func_set_ext_params_name, XC_POLARIZED, xc_f03_func_set_dens_threshold
   use xc_f03_funcs_m, only : XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_X_B88,&
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
       & XC_GGA_C_LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN, XC_MGGA_X_TASK,&
-      & XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC,&
-      & XC_HYB_MGGA_XC_YWB97M
+      & XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC
 #:endif
 
   implicit none
@@ -37,7 +35,7 @@ module xcfunctionals
   public :: getExcVxc_HYB_B3LYP, getExcVxc_HYB_PBE0
   public :: getExcVxc_CAMY_B3LYP, getExcVxc_CAMY_PBEh
   public :: getExcVxc_MGGA_TPSS, getExcVxc_MGGA_SCAN, getExcVxc_MGGA_r2SCAN, getExcVxc_MGGA_r4SCAN
-  public :: getExcVxc_MGGA_TASK, getExcVxc_MGGA_TASK_CC, getExcVxc_CAMY_MGGA_wB97M
+  public :: getExcVxc_MGGA_TASK, getExcVxc_MGGA_TASK_CC
 
 
   interface libxcVxcToInternalVxc
@@ -100,9 +98,6 @@ module xcfunctionals
     !> MGGA-TASK+CC
     integer :: MGGA_TASK_CC = 16  
 
-    !> CAMY-MGGA-WB97M
-    integer :: CAMY_MGGA_wB97M = 17
-
   contains
 
     procedure :: isLDA => TXcFunctionalsEnum_isLDA
@@ -118,6 +113,8 @@ module xcfunctionals
 
   !> Container for enumerated xc-functional types.
   type(TXcFunctionalsEnum), parameter :: xcFunctional = TXcFunctionalsEnum()
+
+  real(dp), parameter :: rhoThreshold = 1e-11
 
 
 contains
@@ -173,7 +170,7 @@ contains
 
     if (xcnr == this%MGGA_SCAN .or. xcnr == this%MGGA_r2SCAN .or. xcnr == this%MGGA_TASK&
         & .or. xcnr == this%MGGA_r4SCAN .or. xcnr == this%MGGA_TPSS&
-        & .or. xcnr == this%MGGA_TASK_CC .or. xcnr == this%CAMY_MGGA_wB97M) then
+        & .or. xcnr == this%MGGA_TASK_CC) then
       isMGGA = .true.
     end if
 
@@ -233,7 +230,7 @@ contains
 
     isCamy = .false.
 
-    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh .or. xcnr == this%CAMY_MGGA_wB97M) then
+    if (xcnr == this%CAMY_B3LYP .or. xcnr == this%CAMY_PBEh) then
       isCamy = .true.
     end if
 
@@ -604,6 +601,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TPSS, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_TPSS, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -737,6 +736,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_SCAN, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -870,6 +871,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_R2SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_R2SCAN, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1003,6 +1006,8 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_R4SCAN, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_R2SCAN, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+    call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1120,6 +1125,7 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TASK, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_LDA_C_PW, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1254,6 +1260,7 @@ contains
 
     call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TASK, XC_POLARIZED)
     call xc_f03_func_init(xcfunc_c, XC_MGGA_C_CC, XC_POLARIZED)
+    call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
 
     ! Exchange energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
@@ -1722,146 +1729,6 @@ contains
     call xc_f03_func_end(xcfunc_xc)
 
   end subroutine getExcVxc_CAMY_B3LYP
-
-
-  !> Calculates exc and vxc for the wB97M xc-functional with Yukawa screening.
-  subroutine getExcVxc_CAMY_MGGA_wB97M(abcissa, dz, dzdr, rho, drho, sigma, tau, omega, camAlpha, camBeta,&
-      & exc, vxc, vtau)
-
-    !> numerical integration abcissas
-    real(dp), intent(in) :: abcissa(:)
-
-    !> step width in linear coordinates
-    real(dp), intent(in) :: dz
-
-    !> dz/dr
-    real(dp), intent(in) :: dzdr(:)
-
-    !> density on grid
-    real(dp), intent(in) :: rho(:,:)
-
-    !> 1st deriv. of density on grid
-    real(dp), intent(in) :: drho(:,:)
-
-    !> contracted gradients of the density
-    real(dp), intent(in), allocatable :: sigma(:,:)
-
-    !> kinetic energy density
-    real(dp), intent(in):: tau(:,:)
-
-    !> range-separation parameter
-    real(dp), intent(in) :: omega
-
-    !> CAM alpha parameter
-    real(dp), intent(in) :: camAlpha
-
-    !> CAM beta parameter
-    real(dp), intent(in) :: camBeta
-
-    !> exc energy density on grid
-    real(dp), intent(out) :: exc(:)
-
-    !> xc potential on grid
-    real(dp), intent(out) :: vxc(:,:)
-
-    !> orbital-dependent tau potential on grid
-    real(dp), intent(out) :: vtau(:,:)
-
-    !! density in libxc compatible format, i.e. rho/(4pi)
-    real(dp), allocatable :: rhor(:,:)
-
-    !! kinetic energy density in libxc compatible format
-    real(dp), allocatable :: rtau(:,:)
-
-    !! exc energy density on grid
-    real(dp), allocatable :: exc_tmp(:)
-
-    !! libxc related objects
-    type(xc_f03_func_t) :: xcfunc_xc
-
-    !! number of density grid points
-    integer(c_size_t) :: nn
-
-    !! exchange and correlation potential on grid
-    real(dp), allocatable :: vxc_tmp(:,:)
-
-    !! first partial derivative of the energy per unit volume in terms of sigma (x+c)
-    real(dp), allocatable :: vxcsigma(:,:)
-
-    !! laplacian for libxc (dummy)
-    real(dp), allocatable :: lapl(:,:)
-
-    !! first partial derivative of the energy per unit volume in terms of tau
-    real(dp), allocatable :: vxctau(:,:)
-
-    !! first partial derivative of the energy per unit volume in terms of laplacian (correlation)
-    !! (dummy)
-    real(dp), allocatable :: vxclapl(:,:)
-
-    !! original definition of the wB97M-V functional with
-    !! non-local VV10 correlation: 10.1063/1.4952647
-
-    !! later version that uses D3-BJ: 10.1021/acs.jctc.8b00842
-
-    !! Transforming the Hartree-Fock exchange parameter to CAM style:
-    !! (alpha + beta) E_gl - beta E_sr = E_lr + c_x E_sr
-    !! E_gl = E_sr + E_lr
-    !! for c_x = 0.15:
-    !! -beta = c_x - 1 => beta = 1 - c_x = 0.85 
-    !! alpha + beta = 1 => alpha = 1 - beta = 0.15
-    
-    !! Values from paper:
-    !! alpha = 0.15
-    !! beta = 0.85
-    !! omega = 0.3 (from paper)
-
-    nn = size(rho, dim=1)
-    ! divide by 4*pi to catch different normalization of spherical harmonics
-    allocate(rhor(2, nn))
-    rhor(:,:) = transpose(rho) * rec4pi
-
-    allocate(rtau(2, nn))
-    rtau(:,:) = transpose(tau)
-
-    ! dummy
-    allocate(lapl(2, nn))
-    lapl(:,:) = 0.0_dp
-
-    allocate(exc_tmp(nn))
-    exc_tmp(:) = 0.0_dp
-
-    allocate(vxc_tmp(2, nn))
-    vxc_tmp(:,:) = 0.0_dp
-
-    allocate(vxcsigma(3, nn))
-    vxcsigma(:,:) = 0.0_dp
-
-    allocate(vxctau(2, nn))
-    vxctau(:,:) = 0.0_dp
-
-    allocate(vxclapl(2, nn))
-    vxclapl(:,:) = 0.0_dp
-
-    call xc_f03_func_init(xcfunc_xc, XC_HYB_MGGA_XC_YWB97M, XC_POLARIZED)
-    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_alpha", camAlpha + camBeta)
-    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_beta", -camBeta)
-    ! cx,00 + alpha = 1 must hold for the UEG limit to be satisfied
-    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_cx00", camBeta)
-    call xc_f03_func_set_ext_params_name(xcfunc_xc, "_omega", omega)
-
-    call xc_f03_mgga_exc_vxc(xcfunc_xc, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), exc_tmp(1),&
-        & vxc_tmp(1, 1), vxcsigma(1, 1), vxclapl(1, 1), vxctau(1, 1))
-    
-    exc(:) = exc_tmp
-    vxc(:,:) = transpose(vxc_tmp)
-    vtau(:,:) = transpose(vxctau)
-
-    call libxcVxcToInternalVxc(abcissa, dz, dzdr, drho, vxcsigma, vxc)
-
-    ! finalize libxc objects
-    call xc_f03_func_end(xcfunc_xc)
-
-  end subroutine getExcVxc_CAMY_MGGA_wB97M
 
 
   !> Calculates exc and vxc for the CAMY-PBEh xc-functional.

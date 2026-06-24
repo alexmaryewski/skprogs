@@ -117,7 +117,7 @@ contains
     write(*, '(A)') 'Enter XC functional:'
     write(*, '(A)') '0: HF, 1: X-Alpha, 2: LDA-PW91, 3: GGA-PBE96, 4: GGA-BLYP, 5: LCY-PBE96,'
     write(*, '(A)') '6: LCY-BNL, 7: PBE0, 8: B3LYP, 9: CAMY-B3LYP, 10: CAMY-PBEh, 11: TPSS,'
-    write(*, '(A)') '12: SCAN, 13: r2SCAN, 14: r4SCAN, 15: TASK, 16: TASK+CC, 17: Y-wB97M'
+    write(*, '(A)') '12: SCAN, 13: r2SCAN, 14: r4SCAN, 15: TASK, 16: TASK+CC, 17: Y-'
     read(*,*) xcnr
 
     if (xcFunctional%isNotImplemented(xcnr)) then
@@ -393,7 +393,6 @@ contains
     if (xcnr == xcFunctional%MGGA_r4SCAN) write(*, '(A)') 'meta-GGA: r4SCAN'
     if (xcnr == xcFunctional%MGGA_TASK) write(*, '(A)') 'meta-GGA: TASK'
     if (xcnr == xcFunctional%MGGA_TASK_CC) write(*, '(A)') 'meta-GGA: TASK+CC'
-    if (xcnr == xcFunctional%CAMY_MGGA_wB97M) write(*, '(A)') 'CAMY meta-GGA: wB97M'
     
 
     write(*, '(A,I6)') 'Max. number of SCF iterations: ', maxiter
