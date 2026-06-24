@@ -18,7 +18,7 @@ module xcfunctionals
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
       & xc_f03_gga_exc_vxc, xc_f03_func_set_ext_params, xc_f03_mgga_exc_vxc,&
-      & xc_f03_func_set_dens_threshold, XC_POLARIZED
+      & xc_f03_func_set_dens_threshold, XC_POLARIZED, xc_f03_func_set_tau_threshold
   use xc_f03_funcs_m, only : XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_X_B88,&
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
       & XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN,XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN,&
@@ -1190,7 +1190,6 @@ contains
     ! Correlation energy and potential
     call xc_f03_mgga_exc_vxc(xcfunc_c, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ec(1),&
         & vc(1, 1), vcsigma(1, 1), vclapl(1, 1), vctau(1, 1))
-    ! DEBUG
 
     call zeroOutCpotOfEmptyDensitySpinChannels(rho, vc)
 
@@ -1985,8 +1984,8 @@ contains
     call xc_f03_mgga_exc_vxc(xcfunc_x, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ex(1),&
         & vx(1, 1), vxsigma(1, 1), vxlapl(1, 1), vxtau(1, 1))
     ! Correlation energy and potential
-    call xc_f03_mgga_exc_vxc(xcfunc_c, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ec(1),&
-        & vc(1, 1), vcsigma(1, 1), vclapl(1, 1), vctau(1, 1))
+    ! call xc_f03_mgga_exc_vxc(xcfunc_c, nn, rhor(1, 1), sigma(1, 1), lapl(1, 1), rtau(1, 1), ec(1),&
+        ! & vc(1, 1), vcsigma(1, 1), vclapl(1, 1), vctau(1, 1))
 
     call zeroOutCpotOfEmptyDensitySpinChannels(rho, vc)
 

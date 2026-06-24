@@ -80,10 +80,6 @@ program HFAtom
   if (nuc > 36) num_mesh_points = 1250
   if (nuc > 54) num_mesh_points = 1500
 
-  ! if (xcFunctional%isMGGA(xcnr)) then
-    ! num_mesh_points = num_mesh_points + 500
-  ! end if
-
   call echo_input(nuc, max_l, occ_shells, maxiter, scftol, poly_order, num_alpha, alpha, conf_type,&
       & confInp, occ, num_occ, num_power, num_alphas, xcnr, tZora, num_mesh_points, xalpha_const)
 
