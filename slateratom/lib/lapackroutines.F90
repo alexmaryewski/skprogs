@@ -5,10 +5,12 @@
 module lapackroutines
 
   use common_accuracy, only : dp, rdp
+  use common_message, only : error
+  
   implicit none
 
   private
-  public :: getrf, getrs
+  public :: gesv, getrf, getrs
 
 
   !> Computes the LU decomposition of a general rectangular matrix using partial pivoting with row
@@ -29,7 +31,69 @@ module lapackroutines
   end interface getrs
 
 
+  !> Computes the solution to a real system of linear equations A * X = B, where A is an N-by-N
+  !> matrix and X and B are N-by-NRHS matrices
+  interface gesv
+    module procedure gesv_dble
+  end interface gesv
+
 contains
+
+  !> Solves a general system of linear equations A * X = B, where A is a real matrix.
+  subroutine gesv_dble(aa, bb, nEquation, nSolution)
+
+    !> Contains the coefficients on entry, the LU factorisation on exit.
+    real(dp), intent(inout) :: aa(:,:)
+
+    !> Right hand side(s) of the linear equation on entry, solution(s) on exit.
+    real(dp), intent(inout) :: bb(:,:)
+
+    !> The size of the problem (nr. of variables and equations). Must be only specified if different
+    !> from size(aa, dim=1).
+    integer, intent(in), optional :: nEquation
+
+    !> Nr. of right hand sides (nr. of solutions). Must be only specified if different from size(b,
+    !> dim=2).
+    integer, intent(in), optional :: nSolution
+
+    integer :: info
+    integer :: nn, nrhs, lda, ldb
+    integer, allocatable :: ipiv(:)
+    character(len=100) :: error_string
+
+    lda = size(aa, dim=1)
+    if (present(nEquation)) then
+      @:ASSERT(nEquation >= 1 .and. nEquation <= lda)
+      nn = nEquation
+    else
+      nn = lda
+    end if
+    @:ASSERT(size(aa, dim=2) >= nn)
+
+    ldb = size(bb, dim=1)
+    @:ASSERT(ldb >= nn)
+    nrhs = size(bb, dim=2)
+    if (present(nSolution)) then
+      @:ASSERT(nSolution <= nrhs)
+      nrhs = nSolution
+    end if
+
+    info = 0
+    allocate(ipiv(nn))
+    call dgesv(nn, nrhs, aa, lda, ipiv, bb, ldb, info)
+
+    if (info /= 0) then
+      if (info < 0) then
+        write(error_string, "(A,I0)")'Failure in dgesv illegal argument at position : ', info
+      else
+        write(error_string, "(A,I0)")'Linear dependent system in dgesv,&
+            & info flag : ', info
+      end if
+      call error(error_string)
+    end if
+
+  end subroutine gesv_dble
+
 
   !> Double precision version of getrf.
   subroutine getrf_dble(aa, ipiv, nRow, nColumn, iError)
