@@ -12,7 +12,6 @@
 module diismixer
   use common_accuracy, only : dp
   use lapackroutines, only : gesv
-  use mixer, only : TMixer
   implicit none
 
   private
@@ -36,7 +35,7 @@ module diismixer
   end type TDiisMixerInp
 
   !> Contains the necessary data for an DIIS mixer.
-  type, extends (TMixer) :: TDiisMixer
+  type TDiisMixer
     private
 
     !> Initial mixing parameter

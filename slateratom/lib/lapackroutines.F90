@@ -4,9 +4,8 @@
 !! The interface of all LAPACK calls must be defined in the module lapack.
 module lapackroutines
 
-  use common_accuracy, only : dp, rdp
+  use common_accuracy, only : rdp
   use common_message, only : error
-  
   implicit none
 
   private
@@ -43,10 +42,10 @@ contains
   subroutine gesv_dble(aa, bb, nEquation, nSolution)
 
     !> Contains the coefficients on entry, the LU factorisation on exit.
-    real(dp), intent(inout) :: aa(:,:)
+    real(rdp), intent(inout) :: aa(:,:)
 
     !> Right hand side(s) of the linear equation on entry, solution(s) on exit.
-    real(dp), intent(inout) :: bb(:,:)
+    real(rdp), intent(inout) :: bb(:,:)
 
     !> The size of the problem (nr. of variables and equations). Must be only specified if different
     !> from size(aa, dim=1).
