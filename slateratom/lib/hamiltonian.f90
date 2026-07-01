@@ -87,7 +87,7 @@ contains
     !> new potential
     real(dp), intent(out) :: pot_new(:,0:,:,:)
 
-    !> commutator [F,PS]
+    !> commutator S^(-1/2) [F,PS] S^(-1/2)
     real(dp), intent(out) :: commutator(:, 0:, :, :)
 
     !> true, if zero-order regular approximation for relativistic effects is desired
@@ -185,7 +185,7 @@ contains
     ! mixer
     allocate(pot_diff, mold=pot_old)
     pot_diff(:,0:,:,:) = pot_old - pot_new
-    call TMixer_mix(pMixer, pot_new, pot_diff)
+    call TMixer_mix(pMixer, pot_new, pot_diff, commutator)
 
     ! Not sure: before or after mixer (potential .ne. Matrix elements)?
     ! Should be irrelevant once self-consistency is reached.

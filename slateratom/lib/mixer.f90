@@ -136,7 +136,7 @@ contains
 
 
   !> Mixes two vectors.
-  subroutine TMixer_mix1D(this, inp, diff)
+  subroutine TMixer_mix1D(this, inp, diff, errvec)
 
     !> Mixer instance
     type(TMixer), intent(inout) :: this
@@ -147,20 +147,23 @@ contains
     !> Difference between input and output vectors (measure of lack of convergence)
     real(dp), intent(in) :: diff(:)
 
+    !> Error vector: measure of lack of convergence
+    real(dp), intent(in) :: errvec(:)
+
     select case (this%mixerType)
     case(mixerTypes%simple)
       call TSimpleMixer_mix(this%pSimpleMixer, inp, diff)
     case(mixerTypes%broyden)
       call TBroydenMixer_mix(this%pBroydenMixer, inp, diff)
     case(mixerTypes%diis)
-      call TDiisMixer_mix(this%pDiisMixer, inp, diff)
+      call TDiisMixer_mix(this%pDiisMixer, inp, diff, errvec)
     end select
 
   end subroutine TMixer_mix1D
 
 
   !> Mixes two 4D matrices.
-  subroutine TMixer_mix4D(this, inp, diff)
+  subroutine TMixer_mix4D(this, inp, diff, errvec)
 
     !> Mixer instance
     type(TMixer), intent(inout) :: this
@@ -168,8 +171,11 @@ contains
     !> Input vector on entry, result vector on exit
     real(dp), intent(inout), contiguous, target :: inp(:,0:,:,:)
 
-    !> Difference between input and output vectors (measure of lack of convergence)
+    !> Difference between input and output vectors
     real(dp), intent(in), contiguous, target :: diff(:,0:,:,:)
+
+    !> Error vector: measure of lack of convergence
+    real(dp), intent(in), contiguous, target :: errvec(:,0:,:,:)
 
     !! Difference between input and output vectors (1D pointer)
     real(dp), pointer :: pDiff(:)
@@ -177,10 +183,14 @@ contains
     !! Input vector on entry, result vector on exit (1D pointer)
     real(dp), pointer :: pInp(:)
 
+    !> Error vector: measure of lack of convergence (1D pointers)
+    real(dp), pointer :: pErrVec(:)
+
     pInp(1:size(inp)) => inp
     pDiff(1:size(diff)) => diff
+    pErrVec(1:size(diff)) => errvec
 
-    call TMixer_mix1D(this, pInp, pDiff)
+    call TMixer_mix1D(this, pInp, pDiff, pErrVec)
 
   end subroutine TMixer_mix4D
 

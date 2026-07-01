@@ -176,7 +176,7 @@ program HFAtom
         & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
         & pot_old, pot_new, commutator, tZora, ff, camAlpha, camBeta)
 
-    ! compute [F,PS]
+    ! compute S^(-1/2) [F,PS] S^(-1/2)
     call compute_commutator(max_l, num_alpha, poly_order, ff, pp, ss, invsqrt_ss, commutator)
 
     if (tZora) then
