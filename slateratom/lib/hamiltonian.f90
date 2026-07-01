@@ -3,7 +3,7 @@ module hamiltonian
 
   use common_accuracy, only : dp
   use dft, only : dft_exc_matrixelement
-  use mixer, only : TMixer, TMixer_mix, TMixer_getMixerType
+  use mixer, only : TMixer, TMixer_mix, TMixer_getMixerType, TMixer_reset
   use utilities, only : compute_commutator
   use xcfunctionals, only : xcFunctional
   use zora_routines, only : zora_t_correction
@@ -226,9 +226,15 @@ contains
 
     ! mixer
     allocate(pot_diff, mold=pot_old)
-    pot_diff(:,0:,:,:) = pot_old - pot_new
+    ! pot_diff(:,0:,:,:) = pot_old - pot_new
+    pot_diff(:,0:,:,:) = pot_new - pot_old
 
     call TMixer_mix(pMixer, pot_new, pot_diff, commutator)
+
+    ! guard against uninitalised arrays on step 0
+    if (iScf == 0) then
+      call TMixer_reset(pMixer, size(pot_new))
+    end if
 
     ! Not sure: before or after mixer (potential .ne. Matrix elements)?
     ! Should be irrelevant once self-consistency is reached.
