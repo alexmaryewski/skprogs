@@ -149,7 +149,7 @@ program HFAtom
   ! kinetic energy, nuclear-electron, and confinement matrix elements which are constant during SCF
   call build_hamiltonian(pMixer, 0, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
       & poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha, pot_old,&
-      & pot_new, commutator, tZora, ff, camAlpha, camBeta)
+      & pot_new, ss, invsqrt_ss, commutator, tZora, ff, camAlpha, camBeta)
 
   ! self-consistency cycles
   write(*,*) 'Energies in Hartree'
@@ -174,10 +174,7 @@ program HFAtom
     ! build Fock matrix and get total energy during SCF
     call build_hamiltonian(pMixer, iScf, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
         & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-        & pot_old, pot_new, commutator, tZora, ff, camAlpha, camBeta)
-
-    ! compute S^(-1/2) [F,PS] S^(-1/2)
-    call compute_commutator(max_l, num_alpha, poly_order, ff, pp, ss, invsqrt_ss, commutator)
+        & pot_old, pot_new, ss, invsqrt_ss, commutator, tZora, ff, camAlpha, camBeta)
 
     if (tZora) then
       call getTotalEnergyZora(tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
