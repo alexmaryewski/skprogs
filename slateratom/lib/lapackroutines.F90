@@ -225,4 +225,30 @@ contains
 
   end subroutine getrs1_dble
 
+  !> Solves overdetermined or underdetermined systems for GE matrices
+  ! subroutine dgelss_dble(amat, bmat, trans)
+
+  !   !> Matrix of the linear system
+  !   real(rdp), intent(inout) :: amat(:,:)
+
+  !   !>
+  !   real(rdp), intent(inout) :: bmat
+
+  !   !> Optional transpose (defaults to 'n')
+  !   character(len=1), intent(in), optional :: trans
+
+  !   !> Error flag, zero on successful exit
+  !   integer, intent(out), optional :: iError
+
+  !   integer :: nn, lda, info, lwork
+  !   real(rdp), allocatable :: work(:)
+  !   real(rdp) :: work2(1)
+    
+  !   integer :: info
+  !   allocate(svals(n), work(8*n))
+  !   call dgelss(n, n, 1, amat, size(amat,1), bmat, size(bmat,1), svals, 1.0e-10_dp, rank, work, 8*n, info)
+  !   if (info /= 0) call error("DIIS: dgelss failed to converge")
+  !     deallocate(svals, work)
+  ! end subroutine dgelss_dble
+
 end module lapackroutines

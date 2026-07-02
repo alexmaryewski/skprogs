@@ -298,7 +298,7 @@ contains
       call TMixer_init(pMixer, pBroydenMixer)
     case(mixerTypes%diis)
       allocate(pDiisMixer)
-      call TDiisMixer_init(pDiisMixer, 5, mixing_factor, .true.)
+      call TDiisMixer_init(pDiisMixer, 10, mixing_factor, .false.)
       call TMixer_init(pMixer, pDiisMixer)
     case default
       error stop "Unknown mixer type."
