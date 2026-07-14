@@ -123,7 +123,8 @@ module xcfunctionals
   !> Container for enumerated xc-functional types.
   type(TXcFunctionalsEnum), parameter :: xcFunctional = TXcFunctionalsEnum()
   
-  ! Lehtola (10.1021/acs.jctc.3c00183) suggests 1e-11 or higher
+  !> Density threshold for v_xc and e_xc evaluation in mGGAs.
+  !! Lehtola (10.1021/acs.jctc.3c00183) recommends 1e-11 or higher.
   real(dp), parameter :: rhoThreshold = 1e-11
 
 contains
