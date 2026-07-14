@@ -188,14 +188,19 @@ program HFAtom
           & total_ene)
     end if
 
-    commutator_max = maxval(abs(commutator))
-    tCommutatorConverged = (maxval(abs(commutator)) < scftol)
     call check_convergence_pot(pot_old, pot_new, max_l, problemsize, scftol, iScf, d_pot_max,&
-        &tConverged)
+        & tConverged)
     call check_convergence_spectrum(max_l, num_alpha, poly_order, eigval, eigval_old, occ,&
         & scftol, iScf, d_spectrum_max, tSpectrumConverged)
+    commutator_max = maxval(abs(commutator))
+    tCommutatorConverged = (maxval(abs(commutator)) < scftol)
 
     write(*, '(I4,2X,3(1X,E16.9),3X,E16.9)') iScf, total_ene, d_spectrum_max, commutator_max, d_pot_max
+
+    ! In case of DIIS, use commutator instead of potential change for convergence
+    if (mixnr == 3) then
+      tConverged = tCommutatorConverged
+    end if
 
     ! if self-consistency is reached, exit loop
     if (tConverged) exit lpScf
