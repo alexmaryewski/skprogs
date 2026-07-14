@@ -18,7 +18,7 @@ program HFAtom
   use sap, only : sap_start_pot
   use totalenergy, only : getTotalEnergy, getTotalEnergyZora
   use dft, only : check_accuracy, thomas_fermi_start_pot, density_grid
-  use utilities, only : check_electron_number, check_convergence
+  use utilities, only : check_electron_number, check_convergence, isIsoorbital
   use zora_routines, only : scaled_zora
   use cmdargs, only : parse_command_arguments
   use common_poisson, only : TBeckeGridParams
@@ -72,6 +72,7 @@ program HFAtom
   allocate(qnvalorbs(2, 0:max_l))
 
   call read_input_2(occ, max_l, occ_shells, qnvalorbs)
+  call isIsoorbital(occ, tIsoorbital)
 
   ! fix number of mesh points depending on nuclear charge
   num_mesh_points = 500
@@ -155,9 +156,9 @@ program HFAtom
   pot_old(:,:,:,:) = 0.0_dp
 
   ! kinetic energy, nuclear-electron, and confinement matrix elements which are constant during SCF
-  call build_hamiltonian(pMixer, scfGuess, 0, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
-      & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-      & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+  call build_hamiltonian(pMixer, 0, scfGuess, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
+      & poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, vtau,&
+      & alpha, pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
   ! self-consistency cycles
   write(*,*) 'Energies in Hartree'
@@ -175,13 +176,14 @@ program HFAtom
     call densmatrix(problemsize, max_l, occ, cof, pp)
 
     ! get electron density, derivatives, exc related potentials and energy densities
-    call density_grid(pp, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa, dzdr,&
-        & dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, vxc, exc, xalpha_const)
+    call density_grid(pp, max_l, num_alpha, poly_order, alpha, num_mesh_points, tIsoorbital,&
+        & abcissa, dzdr, dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, tau, vxc, vtau,&
+        & exc, xalpha_const)
 
     ! build Fock matrix and get total energy during SCF
-    call build_hamiltonian(pMixer, scfGuess, iScf, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
-        & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-        & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+    call build_hamiltonian(pMixer, iScf, scfGuess, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
+        & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, vtau,&
+        & alpha, pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
     if (tZora) then
       call getTotalEnergyZora(tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
@@ -257,7 +259,8 @@ program HFAtom
   call write_potentials_file_standard(num_mesh_points, abcissa, weight, vxc, rho, nuc, pp, max_l,&
       & num_alpha, poly_order, alpha, problemsize)
 
-  call write_densities_file_standard(num_mesh_points, abcissa, weight, rho, drho, ddrho)
+  call write_densities_file_standard(num_mesh_points, abcissa, weight, rho, drho, ddrho, tau,&
+    & xcFunctional%isMGGA(xcnr))
 
   ! write wave functions and eventually invert to have positive starting gradient
   call write_waves_file_standard(num_mesh_points, abcissa, weight, alpha, num_alpha, poly_order,&

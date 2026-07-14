@@ -7,7 +7,7 @@ module utilities
   private
 
   public :: check_convergence, check_electron_number
-  public :: vector_length, fak, zeroOutCpotOfEmptyDensitySpinChannels
+  public :: vector_length, fak, zeroOutCpotOfEmptyDensitySpinChannels, isIsoorbital
 
 
 contains
@@ -30,6 +30,24 @@ contains
     if (maxSpinDn < 1e-16_dp) vc(2, :) = 0.0_dp
 
   end subroutine zeroOutCpotOfEmptyDensitySpinChannels
+
+
+  !> Counts occupations to see if the system is isoorbital,
+  !! i.e. has only one occupied spatial MO.
+  subroutine isIsoorbital(occ,  tIsoorbital)
+
+    !> occupations
+    real(dp), intent(in) :: occ(:,:,:)
+
+    !> is the system isoorbital?
+    logical, intent(out) ::  tIsoorbital
+
+    tIsoorbital = .true.
+    if (count(abs(sum(occ, dim=1)) > 1e-16) > 1) then
+      tIsoorbital = .false.
+    end if
+    
+  end subroutine isIsoorbital
 
 
   !> Checks SCF convergence by comparing new and old potential.

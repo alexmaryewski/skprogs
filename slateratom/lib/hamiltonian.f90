@@ -18,7 +18,7 @@ contains
 
   !> Main driver routine for Fock matrix build-up. Also calls mixer with potential matrix.
   subroutine build_hamiltonian(pMixer, iScf, scfGuess, tt, uu, nuc, vconf, jj, kk, kk_lr, pp, max_l,&
-      & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
+      & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, vtau, alpha,&
       & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
     !> mixer instances
@@ -81,6 +81,9 @@ contains
     !> xc potential on grid
     real(dp), intent(in) :: vxc(:,:)
 
+    !> orbital-dependent tau potential on grid
+    real(dp), intent(in) :: vtau(:,:)
+
     !> basis exponents
     real(dp), intent(in) :: alpha(0:,:)
 
@@ -141,34 +144,34 @@ contains
     end if
 
     ! pure DFT
-    if (xcFunctional%isLDA(xcnr) .or. xcFunctional%isGGA(xcnr)) then
-      call build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
-          & weight, vxc, k_matrix)
+    if (xcFunctional%isLDA(xcnr) .or. xcFunctional%isGGA(xcnr) .or. xcFunctional%isMGGA(xcnr)) then
+      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
+          & weight, vxc, vtau, k_matrix)
     end if
 
     ! HF - DFT hybrid
     if (xcFunctional%isLongRangeCorrected(xcnr)) then
       call build_hf_ex_matrix(kk_lr, pp, max_l, num_alpha, poly_order, k_matrix)
-      call build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
-          & weight, vxc, k_matrix2)
+      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
+          & weight, vxc, vtau, k_matrix2)
       k_matrix(:,:,:,:) = k_matrix + k_matrix2
     elseif (xcnr == xcFunctional%HYB_B3LYP) then
       call build_hf_ex_matrix(kk, pp, max_l, num_alpha, poly_order, k_matrix)
-      call build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
-          & weight, vxc, k_matrix2)
+      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
+          & weight, vxc, vtau, k_matrix2)
       ! B3LYP parameters a=0.20, b=0.72, c=0.81 (libXC defaults)
       ! --> 0.20 * HF exchange + full libXC DFT exchange
       k_matrix(:,:,:,:) = 0.20_dp * k_matrix + k_matrix2
     elseif (xcnr == xcFunctional%HYB_PBE0) then
       call build_hf_ex_matrix(kk, pp, max_l, num_alpha, poly_order, k_matrix)
-      call build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
-          & weight, vxc, k_matrix3)
+      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
+          & weight, vxc, vtau, k_matrix3)
       k_matrix(:,:,:,:) = camAlpha * k_matrix + k_matrix3
     elseif (xcFunctional%isCAMY(xcnr)) then
       call build_hf_ex_matrix(kk, pp, max_l, num_alpha, poly_order, k_matrix)
       call build_hf_ex_matrix(kk_lr, pp, max_l, num_alpha, poly_order, k_matrix2)
-      call build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
-          & weight, vxc, k_matrix3)
+      call build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
+          & weight, vxc, vtau, k_matrix3)
       if (xcnr == xcFunctional%CAMY_B3LYP) then
         ! CAMY-B3LYP parameters (libXC defaults)
         k_matrix(:,:,:,:) = camAlpha * k_matrix + camBeta * k_matrix2 + k_matrix3
@@ -359,8 +362,11 @@ contains
 
   !> Builds DFT exchange matrix to be added to the Fock matrix by calculating the single matrix
   !! elements and putting them together.
-  subroutine build_dft_exc_matrix(max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
-      & weight, vxc, k_matrix)
+  subroutine build_dft_exc_matrix(xcnr, max_l, num_alpha, poly_order, alpha, num_mesh_points, abcissa,&
+      & weight, vxc, vtau, k_matrix)
+
+    !> identifier of exchange-correlation type
+    integer, intent(in) :: xcnr
 
     !> maximum angular momentum
     integer, intent(in) :: max_l
@@ -385,6 +391,9 @@ contains
 
     !> xc potential on grid
     real(dp), intent(in) :: vxc(:,:)
+
+    !> orbital-dependent tau potential on grid
+    real(dp), intent(in) :: vtau(:,:)
 
     !> DFT exchange matrix
     real(dp), intent(out) :: k_matrix(:,0:,:,:)
@@ -413,7 +422,7 @@ contains
             do mm = start, poly_order(ii)
               tt = tt + 1
 
-              call dft_exc_matrixelement(num_mesh_points, weight, abcissa, vxc, alpha(ii, jj), kk,&
+              call dft_exc_matrixelement(xcnr, num_mesh_points, weight, abcissa, vxc, vtau, alpha(ii, jj), kk,&
                   & alpha(ii, ll), mm, ii, exc_matrixelement)
 
               k_matrix(1, ii, ss, tt) = exc_matrixelement(1)
