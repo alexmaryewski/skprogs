@@ -12,6 +12,7 @@ module twocnt
   use common_sphericalharmonics, only : TRealTessY, TRealTessY_init
   use common_quadratures, only : TQuadrature, gauss_legendre_quadrature, gauss_chebyshev_quadrature
   use common_gridgenerator, only : gengrid1_1, gengrid2_2
+  use common_message, only : error
   use common_partition, only : partition_becke_homo
   use common_splines, only : spline3ders
   use common_fifo, only : TFiFoReal2
@@ -31,15 +32,26 @@ module twocnt
   use, intrinsic :: iso_c_binding, only : c_size_t
 
 #:if LIBXC_VERSION_MAJOR == 6
-  use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_vxc,&
-      & xc_f03_gga_vxc, XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_C_PBE,&
+  use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, &
+      & xc_f03_func_set_dens_threshold, xc_f03_lda_vxc, xc_f03_gga_vxc, xc_f03_mgga_vxc,&
+      & XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_C_PBE,&
       & XC_GGA_X_B88, XC_GGA_C_LYP, XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP,&
-      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_UNPOLARIZED, xc_f03_func_set_ext_params
+      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN,&
+      & XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS,&
+      & XC_MGGA_C_CC, XC_GGA_C_LYP, XC_POLARIZED, XC_UNPOLARIZED, xc_f03_func_set_ext_params
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_vxc,&
-      & xc_f03_gga_vxc, xc_f03_func_set_ext_params, XC_UNPOLARIZED
+      & xc_f03_gga_vxc, xc_f03_func_set_ext_params, xc_f03_mgga_vxc,&
+      & xc_f03_func_set_dens_threshold, XC_UNPOLARIZED
   use xc_f03_funcs_m, only : XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_C_PBE,&
-      & XC_GGA_X_B88, XC_GGA_C_LYP, XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP
+      & XC_GGA_X_B88, XC_GGA_C_LYP, XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP,&
+      & XC_HYB_GGA_XC_CAMY_B3LYP, XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN,&
+      & XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN, XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS,&
+      & XC_MGGA_C_CC
+#:endif
+
+#:if (LIBXC_VERSION_MAJOR > 7) or ((LIBXC_VERSION_MAJOR == 7) and (LIBXC_VERSION_MINOR >= 1))
+  use xc_f03_funcs_m, only: XC_MGGA_X_LAK, XC_MGGA_C_LAK
 #:endif
 
   implicit none
@@ -47,7 +59,6 @@ module twocnt
 
   public :: TTwocntInp, TAtomdata, TIntegMap
   public :: get_twocenter_integrals
-
 
   ! Holds properties associated with a single atom.
   type TAtomdata
@@ -76,8 +87,8 @@ module twocnt
     !> atomic potential on grid
     type(TGridorb2) :: pot
 
-    !> atomic density and 1st/2nd derivative on grid
-    type(TGridorb2) :: rho, drho, ddrho
+    !> atomic density, 1st/2nd derivative, kinetic energy density on grid
+    type(TGridorb2) :: rho, drho, ddrho, tau
 
   end type TAtomdata
 
@@ -138,6 +149,9 @@ module twocnt
     !! true, if a CAM functional is requested
     logical :: tCam
 
+    !! true, if a mGGA functional is requested
+    logical :: tMGGA 
+
     !> atomic properties of slateratom code, in the homonuclear case only atom1 is read
     type(TAtomdata) :: atom1, atom2
 
@@ -164,6 +178,7 @@ module twocnt
 
   end type TIntegMap
 
+  real(dp), parameter :: rhoThreshold = 1e-11
 
 contains
 
@@ -300,6 +315,41 @@ contains
       call xc_f03_func_init(xcfunc_x, XC_GGA_X_PBE, XC_UNPOLARIZED)
       ! cpbe96
       call xc_f03_func_init(xcfunc_c, XC_GGA_C_PBE, XC_UNPOLARIZED)
+    case(xcFunctional%MGGA_TPSS)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TPSS, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_MGGA_C_TPSS, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    case(xcFunctional%MGGA_SCAN)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_SCAN, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_MGGA_C_SCAN, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    case(xcFunctional%MGGA_r2SCAN)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_R2SCAN, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_MGGA_C_R2SCAN, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    case(xcFunctional%MGGA_r4SCAN)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_R4SCAN, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_MGGA_C_R2SCAN, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    case(xcFunctional%MGGA_TASK)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TASK, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_LDA_C_PW, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    case(xcFunctional%MGGA_TASK_CC)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_TASK, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_MGGA_C_CC, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
+    case(xcFunctional%MGGA_LAK)
+      call xc_f03_func_init(xcfunc_x, XC_MGGA_X_LAK, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_x, rhoThreshold)
+      call xc_f03_func_init(xcfunc_c, XC_MGGA_C_LAK, XC_UNPOLARIZED)
+      call xc_f03_func_set_dens_threshold(xcfunc_c, rhoThreshold)
     end select
 
     if (inp%tLC .or. inp%tCam) then
@@ -545,14 +595,14 @@ contains
     !! spherical coordinates (r, theta) of atom 1 and atom 2 on grid
     real(dp), pointer :: r1(:), r2(:), theta1(:), theta2(:)
 
-    !! radial grid-orbital portion for all basis functions of atom 1
-    real(dp), allocatable :: radval1(:,:)
+    !! radial grid-orbital portion and first derivative for all basis functions of atom 1
+    real(dp), allocatable :: radval1(:,:), radval1p(:,:)
 
-    !! radial grid-orbital portion and 1st/2nd derivative for all basis functions of atom 2
-    real(dp), allocatable :: radval2(:,:), radval2p(:,:), radval2pp(:,:)
+    !! radial grid-orbital portion and first derivative for all basis functions of atom 2
+    real(dp), allocatable :: radval2(:,:), radval2p(:,:)
 
-    !! total potential and electron density of two atoms
-    real(dp), allocatable :: potval(:), densval(:)
+    !! total potential, electron density, kinetic energy density, v_tau of two atoms
+    real(dp), allocatable :: potval(:), densval(:), tauval(:), taupotval(:)
 
     !! atomic 1st density derivatives of atom 1
     real(dp), allocatable :: densval1p(:)
@@ -560,8 +610,11 @@ contains
     !! atomic 1st density derivatives of atom 2
     real(dp), allocatable :: densval2p(:)
 
-    !! real tesseral spherical harmonic for spherical coordinate (theta) of atom 1 and atom 2
-    real(dp), allocatable :: spherval1(:), spherval2(:)
+    !! real tesseral spherical harmonics of atoms 1 and 2 and their theta derivatives
+    real(dp), allocatable :: spherval1(:), spherval2(:), spherval1p(:), spherval2p(:)
+
+    !! phi-integrated gradient dot product, with the common phi prefactor removed
+    real(dp), allocatable :: gradDot(:)
 
     !! temporary storage for Hamiltonian, overlap, density and pre-factors
     real(dp) :: integ1, integ2, dens, prefac
@@ -584,7 +637,8 @@ contains
     !! libxc related objects
     real(dp), allocatable :: vxc(:), vx(:), vx_sr(:), vc(:)
     real(dp), allocatable :: rhor(:), sigma(:), vxcsigma(:), vxsigma(:), vxsigma_sr(:), vcsigma(:)
-    real(dp), allocatable :: divvxc(:), divvx(:), divvc(:)
+    real(dp), allocatable :: tau(:), vxtau(:), vctau(:), vxctau(:), divvxc(:), divvx(:), divvc(:)
+    real(dp), allocatable :: lapl(:), vxlapl(:), vclapl(:)
 
     r1 => grid1(:, 1)
     theta1 => grid1(:, 2)
@@ -594,22 +648,25 @@ contains
     nGridLibxc = nGrid
 
     allocate(radval1(nGrid, atom1%nbasis))
+    allocate(radval1p(nGrid, atom1%nbasis))
     allocate(radval2(nGrid, atom2%nbasis))
     allocate(radval2p(nGrid, atom2%nbasis))
-    allocate(radval2pp(nGrid, atom2%nbasis))
     allocate(spherval1(nGrid))
     allocate(spherval2(nGrid))
+    allocate(spherval1p(nGrid))
+    allocate(spherval2p(nGrid))
+    allocate(gradDot(nGrid))
 
-    ! get radial portions of all basis functions of atom 1
+    ! get radial portions and first derivatives of all basis functions of atom 1
     do ii = 1, size(radval1, dim=2)
       radval1(:, ii) = atom1%rad(ii)%getValue(r1)
+      radval1p(:, ii) = atom1%drad(ii)%getValue(r1)
     end do
 
-    ! get radial portions (and derivatives) of all basis functions of atom 2
+    ! get radial portions and first derivatives of all basis functions of atom 2
     do ii = 1, size(radval2, dim=2)
       radval2(:, ii) = atom2%rad(ii)%getValue(r2)
       radval2p(:, ii) = atom2%drad(ii)%getValue(r2)
-      radval2pp(:, ii) = atom2%ddrad(ii)%getValue(r2)
     end do
 
     ifPotSup: if (.not. tDensitySuperpos) then
@@ -625,6 +682,7 @@ contains
       vx(:) = 0.0_dp
       allocate(vc(nGrid))
       vc(:) = 0.0_dp
+      allocate(taupotval(nGrid))
       if (iXC /= xcFunctional%LDA_PW91) then
         allocate(vxsigma(nGrid))
         vxsigma(:) = 0.0_dp
@@ -640,6 +698,16 @@ contains
         vxc(:) = 0.0_dp
         allocate(vxcsigma(nGrid))
         vxcsigma(:) = 0.0_dp
+      end if
+      if (xcFunctional%isMGGA(iXC)) then
+        allocate(tauval(nGrid))
+        tauval(:) = atom1%tau%getValue(r1) + atom2%tau%getValue(r2)
+        allocate(vxtau(nGrid), source=0.0_dp)
+        allocate(vctau(nGrid), source=0.0_dp)
+        ! dummy Laplacian
+        allocate(lapl(nGrid))
+        allocate(vxlapl(nGrid))
+        allocate(vclapl(nGrid))
       end if
 
       ! CAMY-PBEh is assembled manually
@@ -701,10 +769,50 @@ contains
         call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxcsigma,&
             & divvxc)
         potval = vxc + divvxc
+      case(xcFunctional%MGGA_TPSS, xcFunctional%MGGA_SCAN, xcFunctional%MGGA_r2SCAN,&
+        & xcFunctional%MGGA_r4SCAN, xcFunctional%MGGA_TASK_CC)
+        ! Exchange energy and potential
+        call xc_f03_mgga_vxc(xcfunc_x, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1),&
+            & vx(1), vxsigma(1), vxlapl(1), vxtau(1))
+        ! Correlation energy and potential
+        call xc_f03_mgga_vxc(xcfunc_c, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1),&
+            & vc(1), vcsigma(1), vclapl(1), vctau(1))
+        call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxsigma, divvx)
+        call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vcsigma, divvc)
+        potval = vx + vc + divvx + divvc
+        taupotval = vxtau + vctau
+      case(xcFunctional%MGGA_LAK)
+#:if (LIBXC_VERSION_MAJOR > 7) or ((LIBXC_VERSION_MAJOR == 7) and (LIBXC_VERSION_MINOR >= 1))
+        ! Exchange energy and potential
+        call xc_f03_mgga_vxc(xcfunc_x, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1),&
+            & vx(1), vxsigma(1), vxlapl(1), vxtau(1))
+        ! Correlation energy and potential
+        call xc_f03_mgga_vxc(xcfunc_c, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1),&
+            & vc(1), vcsigma(1), vclapl(1), vctau(1))
+        call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxsigma, divvx)
+        call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vcsigma, divvc)
+        potval = vx + vc + divvx + divvc
+        taupotval = vxtau + vctau
+#:else
+    call error("LAK xc functional is only supported in libxc 7.1 or newer.")
+#:endif
+      case(xcFunctional%MGGA_TASK)
+        ! Exchange energy and potential
+        call xc_f03_mgga_vxc(xcfunc_x, nGridLibxc, rhor(1), sigma(1), lapl(1), tau(1),&
+            & vx(1), vxsigma(1), vxlapl(1), vxtau(1))
+        ! Correlation energy and potential
+        call xc_f03_lda_vxc(xcfunc_c, nGridLibxc, rhor(1), vc(1))
+        call getDivergence(nRad, nAng, densval1p, densval2p, r1, r2, theta1, theta2, vxsigma, divvx)
+        potval = vx + vc + divvx
+        taupotval = vxtau
       end select
       ! add nuclear and coulomb potential to obtain the effective potential
       potval(:) = potval + atom1%pot%getValue(r1) + atom2%pot%getValue(r2)
+      if (.not. xcFunctional%isMGGA(iXC)) then
+        taupotval = 0.0_dp
+      end if
     end if ifPotSup
+
 
     denserr = 0.0_dp
     do ii = 1, imap%ninteg
@@ -713,18 +821,22 @@ contains
       i2 = imap%type(2, ii)
       l2 = atom2%angmoms(i2)
       mm = imap%type(3, ii) - 1
-      call TRealTessY_init(tes1, l1, mm)
-      call TRealTessY_init(tes2, l2, mm)
 
-      ! Y_{l1 mm}(\theta_1, \phi = 0)
-      spherval1(:) = tes1%getValue_1d(theta1)
-      ! Y_{l2 mm}(\theta_2, \phi = 0)
-      spherval2(:) = tes2%getValue_1d(theta2)
+      ! Z_lm(theta) = Z_lm(theta, phi=0) and dZ_lm/dtheta.
+      call getSpherValWithDerivative(l1, mm, theta1, spherval1, spherval1p)
+      call getSpherValWithDerivative(l2, mm, theta2, spherval2, spherval2p)
+
+      ! compute the dot product of gradients of basis functions, integrated over phi,
+      ! transforming from local spherical coordinates to a common cylindrical basis
+
+      gradDot(:) = getReducedGradientDot(radval1(:, i1), radval1p(:, i1), r1, theta1,&
+          & spherval1, spherval1p, radval2(:, i2), radval2p(:, i2), r2, theta2,&
+          & spherval2, spherval2p, mm)
 
       ! calculate SK-quantities
       ! Hamiltonian
-      integ1 = getHamiltonian(radval1(:, i1), radval2(:, i2), radval2p(:, i2), radval2pp(:, i2),&
-          & r2, l2, spherval1, spherval2, potval, weights)
+      integ1 = getHamiltonian(radval1(:, i1), radval2(:, i2), spherval1, spherval2,&
+          & gradDot, potval, taupotval, weights)
       ! overlap integral: \sum_{r,\Omega} R_1(r) Y_1(\Omega) R_2(r) Y_2(\Omega) weight
       integ2 = getOverlap(radval1(:, i1), radval2(:, i2), spherval1, spherval2, weights)
       ! total density: \int (|\phi_1|^2 + |\phi_2|^2)
@@ -868,6 +980,21 @@ contains
     sigma = (drho1 * f1 + drho2 * f2) * rec4pi**2
 
   end function getLibxcSigma
+
+
+  !> Calculates libXC renormalized kinetic energy density superposition of dimer.
+  pure function getLibxcTau(tauval) result(tau)
+
+    !> superposition of atomic densities of atom 1 and atom 2
+    real(dp), intent(in) :: tauval(:)
+
+    !> renormalized density
+    real(dp), allocatable :: tau(:)
+
+    ! renorm rho (incoming quantities are 4pi normed)
+    tau = tauval
+
+  end function getLibxcTau
 
 
   !> Computes contribution div(v) to the xc-potential due to vsigma = deps/dsigma returned by libxc.
@@ -1029,27 +1156,104 @@ contains
   end function getdensity
 
 
+  !> Evaluates a real tesseral harmonic at phi=0 and its theta derivative.
+  !! The derivative recurrence is obtained from the angular-momentum ladder relations.
+  subroutine getSpherValWithDerivative(ll, mm, theta, spher, dspher)
+
+    !> l, m quantum numbers
+    integer, intent(in) :: ll, mm
+
+    !> angle theta
+    real(dp), intent(in) :: theta(:)
+
+    !> 
+    real(dp), intent(out) :: spher(:), dspher(:)
+
+    type(TRealTessY) :: tess, tessMinus, tessPlus
+    real(dp) :: alpha, beta
+
+    call TRealTessY_init(tess, ll, mm)
+    spher(:) = tess%getValue_1d(theta)
+
+    if (ll == 0) then
+      dspher(:) = 0.0_dp
+      return
+    end if
+
+    if (mm == 0) then
+      call TRealTessY_init(tessPlus, ll, 1)
+      dspher(:) = -sqrt(0.5_dp * real(ll * (ll + 1), dp))&
+          & * tessPlus%getValue_1d(theta)
+      return
+    end if
+
+    beta = sqrt(real((ll + mm) * (ll - mm + 1), dp))
+    call TRealTessY_init(tessMinus, ll, mm - 1)
+    if (mm == 1) then
+      ! m=0 lacks the sqrt(2) normalization of the cosine tesseral harmonics.
+      dspher(:) = beta / sqrt(2.0_dp) * tessMinus%getValue_1d(theta)
+    else
+      dspher(:) = 0.5_dp * beta * tessMinus%getValue_1d(theta)
+    end if
+
+    if (mm < ll) then
+      alpha = sqrt(real((ll - mm) * (ll + mm + 1), dp))
+      call TRealTessY_init(tessPlus, ll, mm + 1)
+      dspher(:) = dspher - 0.5_dp * alpha * tessPlus%getValue_1d(theta)
+    end if
+
+  end subroutine getSpherValWithDerivative
+
+
+  !> Phi-integrated dot product of gradients of two basis functions R(r) * Z_lm(theta,phi).
+  !! Multiplication by 2*pi (m=0) or pi (m>0) is handled externally.
+  pure elemental function getReducedGradientDot(rad1, drad1, r1, theta1, spher1, dspher1,&
+      & rad2, drad2, r2, theta2, spher2, dspher2, mm) result(res)
+
+    real(dp), intent(in) :: rad1, drad1, r1, theta1, spher1, dspher1
+    real(dp), intent(in) :: rad2, drad2, r2, theta2, spher2, dspher2
+    integer, intent(in) :: mm
+
+    real(dp) :: res
+    real(dp) :: gr1, gt1, gr2, gt2, delta
+
+    gr1 = drad1 * spher1
+    gt1 = rad1 * dspher1 / r1
+    gr2 = drad2 * spher2
+    gt2 = rad2 * dspher2 / r2
+    delta = theta1 - theta2
+
+    res = cos(delta) * (gr1 * gr2 + gt1 * gt2)&
+        & + sin(delta) * (gr1 * gt2 - gt1 * gr2)
+
+    if (mm > 0) then
+      ! This is the phi-gradient contribution after analytic integration over phi.
+      ! It cannot be obtained by evaluating the cosine harmonic only at phi=0.
+      res = res + real(mm * mm, dp) * rad1 * rad2 * spher1 * spher2&
+          & / (r1 * r2 * sin(theta1) * sin(theta2))
+    end if
+
+  end function getReducedGradientDot
+
+
   !> Calculates Hamiltonian for a fixed orbital and interaction configuration.
-  pure function getHamiltonian(rad1, rad2, rad2p, rad2pp, r2, l2, spher1, spher2, pot, weights)&
+  pure function getHamiltonian(rad1, rad2, spher1, spher2, gradDot, pot, taupot, weights)&
       & result(res)
 
     !> radial grid-orbital portion of atom 1 and atom 2
     real(dp), intent(in) :: rad1(:), rad2(:)
 
-    !> radial grid-orbital portion's 1st and 2nd derivative of atom 2
-    real(dp), intent(in) :: rad2p(:), rad2pp(:)
-
-    !> radial spherical coordinates of atom 2 on grid
-    real(dp), intent(in) :: r2(:)
-
-    !> angular momentum corresponding to current orbital index of atom 2
-    integer, intent(in) :: l2
-
     !> real tesseral spherical harmonic for spherical coordinate (theta) of atom 1 and atom 2
     real(dp), intent(in) :: spher1(:), spher2(:)
 
-    !> effective potential on grid
+    !> phi-reduced gradient dot product
+    real(dp), intent(in) :: gradDot(:)
+
+    !> effective multiplicative potential on grid
     real(dp), intent(in) :: pot(:)
+
+    !> orbital potential
+    real(dp), intent(in) :: taupot(:)
 
     !> integration weights
     real(dp), intent(in) :: weights(:)
@@ -1057,12 +1261,7 @@ contains
     !! resulting Hamiltonian matrix element
     real(dp) :: res
 
-    res = sum((rad1 * spher1)&
-        & * (- 0.5_dp * rad2pp&
-        & - rad2p / r2&
-        & + 0.5_dp * l2 * (l2 + 1) * rad2 / r2**2&
-        & + pot * rad2)&
-        & * spher2 * weights)
+    res = sum((0.5_dp * (1.0_dp + taupot) * gradDot + pot * rad1 * spher1 * rad2 * spher2) * weights)
 
   end function getHamiltonian
 
