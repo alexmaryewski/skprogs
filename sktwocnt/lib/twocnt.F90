@@ -602,7 +602,7 @@ contains
     real(dp), allocatable :: radval2(:,:), radval2p(:,:)
 
     !! total potential, electron density, kinetic energy density, v_tau of two atoms
-    real(dp), allocatable :: potval(:), densval(:), tauval(:), taupotval(:)
+    real(dp), allocatable :: potval(:), densval(:), tau(:), taupotval(:)
 
     !! atomic 1st density derivatives of atom 1
     real(dp), allocatable :: densval1p(:)
@@ -637,7 +637,7 @@ contains
     !! libxc related objects
     real(dp), allocatable :: vxc(:), vx(:), vx_sr(:), vc(:)
     real(dp), allocatable :: rhor(:), sigma(:), vxcsigma(:), vxsigma(:), vxsigma_sr(:), vcsigma(:)
-    real(dp), allocatable :: tau(:), vxtau(:), vctau(:), vxctau(:), divvxc(:), divvx(:), divvc(:)
+    real(dp), allocatable :: vxtau(:), vctau(:), vxctau(:), divvxc(:), divvx(:), divvc(:)
     real(dp), allocatable :: lapl(:), vxlapl(:), vclapl(:)
 
     r1 => grid1(:, 1)
@@ -700,8 +700,8 @@ contains
         vxcsigma(:) = 0.0_dp
       end if
       if (xcFunctional%isMGGA(iXC)) then
-        allocate(tauval(nGrid))
-        tauval(:) = atom1%tau%getValue(r1) + atom2%tau%getValue(r2)
+        allocate(tau(nGrid))
+        tau(:) = atom1%tau%getValue(r1) + atom2%tau%getValue(r2)
         allocate(vxtau(nGrid), source=0.0_dp)
         allocate(vctau(nGrid), source=0.0_dp)
         ! dummy Laplacian
@@ -828,7 +828,6 @@ contains
 
       ! compute the dot product of gradients of basis functions, integrated over phi,
       ! transforming from local spherical coordinates to a common cylindrical basis
-
       gradDot(:) = getReducedGradientDot(radval1(:, i1), radval1p(:, i1), r1, theta1,&
           & spherval1, spherval1p, radval2(:, i2), radval2p(:, i2), r2, theta2,&
           & spherval2, spherval2p, mm)
@@ -980,21 +979,6 @@ contains
     sigma = (drho1 * f1 + drho2 * f2) * rec4pi**2
 
   end function getLibxcSigma
-
-
-  !> Calculates libXC renormalized kinetic energy density superposition of dimer.
-  pure function getLibxcTau(tauval) result(tau)
-
-    !> superposition of atomic densities of atom 1 and atom 2
-    real(dp), intent(in) :: tauval(:)
-
-    !> renormalized density
-    real(dp), allocatable :: tau(:)
-
-    ! renorm rho (incoming quantities are 4pi normed)
-    tau = tauval
-
-  end function getLibxcTau
 
 
   !> Computes contribution div(v) to the xc-potential due to vsigma = deps/dsigma returned by libxc.

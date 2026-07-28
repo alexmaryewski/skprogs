@@ -19,7 +19,9 @@ LOGGER = logging.getLogger('slateratom')
 
 SUPPORTED_FUNCTIONALS = {'lda' : 2, 'pbe' : 3, 'blyp' : 4, 'lcy-pbe' : 5,
                          'lcy-bnl' : 6, 'pbe0' : 7, 'b3lyp' : 8,
-                         'camy-b3lyp' : 9, 'camy-pbeh' : 10}
+                         'camy-b3lyp' : 9, 'camy-pbeh' : 10, "tpss": 11,
+                         'scan': 12, 'r2scan': 13, 'r4scan': 14, 'task': 15,
+                         'task+cc': 16, 'lak': 17}
 
 INPUT_FILE = "slateratom.in"
 STDOUT_FILE = "output"
@@ -546,16 +548,10 @@ class SlateratomResult:
            Grid data with following potentials:
            nuclear, coulomb, xc-spinup, xc-spindown.
         """
-        fp = open(os.path.join(self._workdir, "pot.dat"), "r")
-        fp.readline()
-        fp.readline()
-        ngrid = int(fp.readline())
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        pots = np.fromfile(fp, dtype=float, count=ngrid * 6, sep=" ")
-        fp.close()
-        pots.shape = (ngrid, 6)
-        grid = oc.RadialGrid(pots[:, 0], pots[:, 1])
-        potentials = pots[:,2:6]
+
+        data = np.genfromtxt(os.path.join(self._workdir, "pot.dat"), skip_header=3, dtype=float)
+        grid = oc.RadialGrid(data[:, 0], data[:, 1])
+        potentials = data[:,2:]
         return oc.GridData(grid, potentials)
 
     def get_density012(self):
@@ -566,19 +562,10 @@ class SlateratomResult:
         density : GridData
            Grid data with the density and its first and second derivatives.
         """
-        fp = open(os.path.join(self._workdir, "dens.dat"), "r")
-        fp.readline()
-        fp.readline()
-        fp.readline()
-        fp.readline()
-        fp.readline()
-        ngrid = int(fp.readline())
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        dens = np.fromfile(fp, dtype=float, count=ngrid * 7, sep=" ")
-        fp.close()
-        dens.shape = (ngrid, 7)
-        grid = oc.RadialGrid(dens[:,0], dens[:,1])
-        density = dens[:,2:5]
+
+        data = np.genfromtxt(os.path.join(self._workdir, "dens.dat"), skip_header=6, dtype=float)
+        grid = oc.RadialGrid(data[:,0], data[:,1])
+        density = data[:,2:]
         return oc.GridData(grid, density)
 
     def get_wavefunction012(self, ss, nn, ll):
