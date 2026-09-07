@@ -180,8 +180,8 @@ contains
 
     ! build mixer input
     if (iScf == 0 .and. scfGuess == 2) then
-      pot_new(1, :,:,:) = -k_matrix(1, :,:,:)
-      pot_new(2, :,:,:) = -k_matrix(2, :,:,:)
+      pot_new(1, :,:,:) = -real(nuc, dp) * uu - k_matrix(1, :,:,:)
+      pot_new(2, :,:,:) = -real(nuc, dp) * uu - k_matrix(2, :,:,:)
     else
       pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
       pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
