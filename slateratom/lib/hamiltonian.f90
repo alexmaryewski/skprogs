@@ -4,7 +4,7 @@ module hamiltonian
   use common_accuracy, only : dp
   use dft, only : dft_exc_matrixelement
   use mixer, only : TMixer, TMixer_mix
-  use zora_routines, only : zora_t_correction
+  use zora_routines, only : zora_t_correction, potential_to_mesh, kappa_to_mesh
   use xcfunctionals, only : xcFunctional
 
   implicit none
@@ -19,7 +19,7 @@ contains
   !> Main driver routine for Fock matrix build-up. Also calls mixer with potential matrix.
   subroutine build_hamiltonian(pMixer, iScf, scfGuess, tt, uu, nuc, vconf, jj, kk, kk_lr, pp, max_l,&
       & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-      & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+      & pot_old, pot_new, iZora, vzora, kappa, kappa2, ff, camAlpha, camBeta)
 
     !> mixer instances
     type(TMixer), intent(inout) :: pMixer
@@ -90,8 +90,17 @@ contains
     !> new potential
     real(dp), intent(out) :: pot_new(:,0:,:,:)
 
-    !> true, if zero-order regular approximation for relativistic effects is desired
-    logical, intent(in) :: tZora
+    !> information about ZORA (0: no ZORA correction; 
+    !! 1: self-consistent ZORA correction;
+    !! 2: ZORA with fixed atomic potential)
+    integer, intent(in) :: iZora
+
+    !> total ZORA potential on mesh
+    real(dp), intent(inout) :: vzora(:,:)
+
+    !> kappa=V/(2*c^2-V), V total potential, c speed of light
+    !! kappa2=kappa^2, i.e. square of kappa
+    real(dp), intent(inout) :: kappa(:,:), kappa2(:,:)
 
     !> fock matrix supervector
     real(dp), intent(out) :: ff(:,0:,:,:)
@@ -196,9 +205,15 @@ contains
 
     ! Not sure: before or after mixer (potential .ne. Matrix elements)?
     ! Should be irrelevant once self-consistency is reached.
-    if (tZora .and. (iScf /= 0)) then
+    if ((iZora > 0) .and. (iScf /= 0)) then
+      ! update potential for self-consistent ZORA
+      if (iZora == 1) then
+          call potential_to_mesh(num_mesh_points, abcissa, vxc, nuc, pp, max_l, num_alpha, poly_order,&
+            & alpha, problemsize, vzora)
+          call kappa_to_mesh(num_mesh_points, vzora, kappa, kappa2)
+      end if
       call zora_t_correction(1, t_zora, max_l, num_alpha, alpha, poly_order, num_mesh_points,&
-          & weight, abcissa, vxc, nuc, pp, problemsize)
+          & weight, abcissa, kappa, kappa2)
     end if
 
     ! finally build Fock matrix
@@ -215,7 +230,7 @@ contains
               ff(1, ii, ss, ttt) = tt(ii, ss, ttt) + pot_new(1, ii, ss, ttt) + vconf(ii, ss, ttt)
               ff(2, ii, ss, ttt) = tt(ii, ss, ttt) + pot_new(2, ii, ss, ttt) + vconf(ii, ss, ttt)
 
-              if (tZora) then
+              if (iZora > 0) then
                 ff(1, ii, ss, ttt) = ff(1, ii, ss, ttt) + t_zora(1, ii, ss, ttt)
                 ff(2, ii, ss, ttt) = ff(2, ii, ss, ttt) + t_zora(2, ii, ss, ttt)
               end if

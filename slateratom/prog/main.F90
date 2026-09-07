@@ -19,7 +19,7 @@ program HFAtom
   use totalenergy, only : getTotalEnergy, getTotalEnergyZora
   use dft, only : check_accuracy, thomas_fermi_start_pot, density_grid
   use utilities, only : check_electron_number, check_convergence
-  use zora_routines, only : scaled_zora
+  use zora_routines, only : scaled_zora, kappa_to_mesh
   use cmdargs, only : parse_command_arguments
   use common_poisson, only : TBeckeGridParams
   use xcfunctionals, only : xcFunctional
@@ -62,7 +62,7 @@ program HFAtom
   call parse_command_arguments()
   call read_input_1(nuc, max_l, occ_shells, maxiter, scftol, poly_order, min_alpha, max_alpha,&
       & num_alpha, tAutoAlphas, alpha, conf_type, confInp, num_occ, num_power, num_alphas, xcnr,&
-      & tPrintEigvecs, tZora, mixnr, mixing_factor, scfGuess, xalpha_const, omega, camAlpha,&
+      & tPrintEigvecs, iZora, mixnr, mixing_factor, scfGuess, xalpha_const, omega, camAlpha,&
       & camBeta, grid_params)
 
   problemsize = num_power * num_alphas
@@ -81,7 +81,7 @@ program HFAtom
   if (nuc > 54) num_mesh_points = 1500
 
   call echo_input(nuc, max_l, occ_shells, maxiter, scftol, poly_order, num_alpha, alpha, conf_type,&
-      & confInp, occ, num_occ, num_power, num_alphas, xcnr, tZora, num_mesh_points, xalpha_const)
+      & confInp, occ, num_occ, num_power, num_alphas, xcnr, iZora, num_mesh_points, xalpha_const)
 
   ! allocate global stuff and zero out
   call allocate_globals()
@@ -147,6 +147,12 @@ program HFAtom
 
   end if
 
+  ! pre-compute potential and kappa for non-self-consistent ZORA
+  if (iZora == 2) then
+    call sap_start_pot(abcissa, nuc, vzora)
+    call kappa_to_mesh(num_mesh_points, vzora, kappa, kappa2)
+  end if
+
   ! build initial fock matrix, core hamiltonian only
   write(*, '(A)') 'Startup: Building Initial Fock Matrix'
   write(*, '(A)') ' '
@@ -157,7 +163,7 @@ program HFAtom
   ! kinetic energy, nuclear-electron, and confinement matrix elements which are constant during SCF
   call build_hamiltonian(pMixer, 0, scfGuess, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
       & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-      & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+      & pot_old, pot_new, iZora, vzora, kappa, kappa2, ff, camAlpha, camBeta)
 
   ! self-consistency cycles
   write(*,*) 'Energies in Hartree'
@@ -181,9 +187,9 @@ program HFAtom
     ! build Fock matrix and get total energy during SCF
     call build_hamiltonian(pMixer, iScf, scfGuess, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
         & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
-        & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
+        & pot_old, pot_new, iZora, vzora, kappa, kappa2, ff, camAlpha, camBeta)
 
-    if (tZora) then
+    if (iZora > 0) then
       call getTotalEnergyZora(tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
           & poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, rho, exc, vxc,&
           & eigval_scaled, occ, camAlpha, camBeta, kinetic_energy, nuclear_energy, coulomb_energy,&
@@ -225,18 +231,18 @@ program HFAtom
 
   call write_eigval(max_l, num_alpha, poly_order, eigval)
   call write_energies(kinetic_energy, nuclear_energy, coulomb_energy, exchange_energy, x_en_2,&
-      & conf_energy, total_ene, tZora)
+      & conf_energy, total_ene, iZora)
 
-  if (tZora) then
+  if (iZora > 0) then
     call scaled_zora(eigval, max_l, num_alpha, alpha, poly_order, problemsize, num_mesh_points,&
-        & weight, abcissa, vxc, nuc, pp, tt, cof, occ, eigval_scaled, zora_ekin)
+        & weight, abcissa, kappa, kappa2, tt, cof, occ, eigval_scaled, zora_ekin)
 
     write(*, '(A)') 'Scaled Scalar-Relativistic ZORA EIGENVALUES and ENERGY'
     write(*, '(A)') '------------------------------------------------------'
     call write_eigval(max_l, num_alpha, poly_order, eigval_scaled)
   end if
 
-  if (tZora) then
+  if (iZora > 0) then
     call getTotalEnergyZora(tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l, num_alpha,&
         & poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, rho, exc, vxc,&
         & eigval_scaled, occ, camAlpha, camBeta, zora_ekin, nuclear_energy, coulomb_energy,&
@@ -246,12 +252,12 @@ program HFAtom
   write(*, '(A,E20.12)') 'Potential Matrix Elements converged to ', change_max
   write(*, '(A)') ' '
 
-  if (tZora) then
+  if (iZora > 0) then
     call write_energies_tagged(zora_ekin, nuclear_energy, coulomb_energy, exchange_energy,&
-        & conf_energy, 0.0_dp, tZora, eigval_scaled, occ)
+        & conf_energy, 0.0_dp, iZora, eigval_scaled, occ)
   else
     call write_energies_tagged(kinetic_energy, nuclear_energy, coulomb_energy, x_en_2, conf_energy,&
-        & total_ene, tZora, eigval, occ)
+        & total_ene, iZora, eigval, occ)
   end if
 
   call write_potentials_file_standard(num_mesh_points, abcissa, weight, vxc, rho, nuc, pp, max_l,&
@@ -266,7 +272,7 @@ program HFAtom
   call write_wave_coeffs_file(max_l, num_alpha, poly_order, cof, alpha, occ, qnvalorbs)
 
   if (isAvgPotNeeded) then
-    if (.not. tZora) kinetic_energy_ref = kinetic_energy
+    if (iZora == 0) kinetic_energy_ref = kinetic_energy
     call getAveragePotential(cof, eigval, occ, abcissa, weight, max_l, num_alpha, alpha,&
         & poly_order, problemsize, scftol, maxiter, avgPot, kinetic_energy_ref=kinetic_energy_ref)
     call writeAveragePotential(abcissa, avgPot)
