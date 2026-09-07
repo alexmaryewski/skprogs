@@ -155,7 +155,7 @@ program HFAtom
   pot_old(:,:,:,:) = 0.0_dp
 
   ! kinetic energy, nuclear-electron, and confinement matrix elements which are constant during SCF
-  call build_hamiltonian(pMixer, scfGuess, 0, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
+  call build_hamiltonian(pMixer, 0, scfGuess, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
       & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
       & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
@@ -179,7 +179,7 @@ program HFAtom
         & dz, xcnr, omega, camAlpha, camBeta, rho, drho, ddrho, vxc, exc, xalpha_const)
 
     ! build Fock matrix and get total energy during SCF
-    call build_hamiltonian(pMixer, scfGuess, iScf, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
+    call build_hamiltonian(pMixer, iScf, scfGuess, tt, uu, nuc, vconf_matrix, jj, kk, kk_lr, pp, max_l,&
         & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, alpha,&
         & pot_old, pot_new, tZora, ff, camAlpha, camBeta)
 
