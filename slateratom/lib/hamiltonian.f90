@@ -189,8 +189,10 @@ contains
 
     ! mixer
     allocate(pot_diff, mold=pot_old)
-    pot_diff(:,0:,:,:) = pot_old - pot_new
-    call TMixer_mix(pMixer, pot_new, pot_diff)
+    if (iScf /= 0) then
+        pot_diff(:,0:,:,:) = pot_old - pot_new
+        call TMixer_mix(pMixer, pot_new, pot_diff)
+    end if
 
     ! Not sure: before or after mixer (potential .ne. Matrix elements)?
     ! Should be irrelevant once self-consistency is reached.
