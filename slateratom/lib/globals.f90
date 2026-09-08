@@ -178,6 +178,14 @@ module globals
 
   !> orbital-dependent tau potential on grid
   real(dp), allocatable :: vtau(:,:)
+  !> potential used by ZORA on grid
+  real(dp), allocatable :: vzora(:,:)
+
+  !> kappa=V/(2*c^2-V) for ZORA
+  real(dp), allocatable :: kappa(:,:)
+
+  !> kappa^2 for ZORA
+  real(dp), allocatable :: kappa2(:,:)
 
   !> exc energy density on grid
   real(dp), allocatable :: exc(:)
@@ -191,8 +199,10 @@ module globals
   !> print eigenvectors to stdout
   logical :: tPrintEigvecs
 
-  !> true, if zero-order regular approximation for relativistic effects is desired
-  logical :: tZora
+  !> information about ZORA (0: no ZORA correction; 
+  !! 1: self-consistent ZORA correction;
+  !! 2: ZORA with fixed atomic potential)
+  integer :: iZora
 
   !> is the system isoorbital, i.e. all electrons occupy one spatial MO?
   logical :: tIsoorbital
@@ -250,6 +260,11 @@ contains
     allocate(exc(num_mesh_points))
     allocate(vxc(num_mesh_points, 2))
     allocate(vtau(num_mesh_points, 2))
+    if (iZora > 0) then
+      allocate(vzora(num_mesh_points, 2))
+      allocate(kappa(num_mesh_points, 2))
+      allocate(kappa2(num_mesh_points, 2))
+    end if
 
     allocate(ss(0:max_l, problemsize, problemsize))
     write(*, '(A,I0,A)') 'Size of one Supervectors is ', size(ss), ' double precision elements'

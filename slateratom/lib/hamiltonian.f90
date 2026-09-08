@@ -6,7 +6,7 @@ module hamiltonian
   use mixer, only : TMixer, TMixer_mix, TMixer_getMixerType, TMixer_reset
   use utilities, only : compute_commutator
   use xcfunctionals, only : xcFunctional
-  use zora_routines, only : zora_t_correction
+  use zora_routines, only : zora_t_correction, potential_to_mesh, kappa_to_mesh
 
   implicit none
   private
@@ -20,7 +20,8 @@ contains
   !> Main driver routine for Fock matrix build-up. Also calls mixer with potential matrix.
   subroutine build_hamiltonian(pMixer, iScf, scfGuess, tt, uu, nuc, vconf, jj, kk, kk_lr, pp, max_l,&
       & num_alpha, poly_order, problemsize, xcnr, num_mesh_points, weight, abcissa, vxc, vtau, alpha,&
-      & pot_old, pot_new, overlap, invsqrt_ss, commutator, tZora, ff, camAlpha, camBeta)
+      & pot_old, pot_new, overlap, invsqrt_ss, commutator, iZora, vzora, kappa, kappa2, ff,&
+      & camAlpha, camBeta)
 
     !> mixer instances
     type(TMixer), intent(inout) :: pMixer
@@ -103,8 +104,17 @@ contains
     !> commutator S^(-1/2) [F,PS] S^(-1/2)
     real(dp), intent(out) :: commutator(:, 0:, :, :)
 
-    !> true, if zero-order regular approximation for relativistic effects is desired
-    logical, intent(in) :: tZora
+    !> information about ZORA (0: no ZORA correction; 
+    !! 1: self-consistent ZORA correction;
+    !! 2: ZORA with fixed atomic potential)
+    integer, intent(in) :: iZora
+
+    !> total ZORA potential on mesh
+    real(dp), intent(inout) :: vzora(:,:)
+
+    !> kappa=V/(2*c^2-V), V total potential, c speed of light
+    !! kappa2=kappa^2, i.e. square of kappa
+    real(dp), intent(inout) :: kappa(:,:), kappa2(:,:)
 
     !> fock matrix supervector
     real(dp), intent(out) :: ff(:,0:,:,:)
@@ -193,8 +203,8 @@ contains
 
     ! build mixer input
     if (iScf == 0 .and. scfGuess == 2) then
-      pot_new(1, :,:,:) = -k_matrix(1, :,:,:)
-      pot_new(2, :,:,:) = -k_matrix(2, :,:,:)
+      pot_new(1, :,:,:) =  -k_matrix(1, :,:,:)
+      pot_new(2, :,:,:) =  -k_matrix(2, :,:,:)
     else
       pot_new(1, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(1, :,:,:)
       pot_new(2, :,:,:) = -real(nuc, dp) * uu + j_matrix - k_matrix(2, :,:,:)
@@ -214,7 +224,7 @@ contains
               ff(1, ii, ss, ttt) = tt(ii, ss, ttt) + pot_new(1, ii, ss, ttt) + vconf(ii, ss, ttt)
               ff(2, ii, ss, ttt) = tt(ii, ss, ttt) + pot_new(2, ii, ss, ttt) + vconf(ii, ss, ttt)
 
-              if (tZora) then
+              if (iZora > 0) then
                 ff(1, ii, ss, ttt) = ff(1, ii, ss, ttt) + t_zora(1, ii, ss, ttt)
                 ff(2, ii, ss, ttt) = ff(2, ii, ss, ttt) + t_zora(2, ii, ss, ttt)
               end if
@@ -228,30 +238,24 @@ contains
     ! compute S^(-1/2) [F,PS] S^(-1/2)
     call compute_commutator(max_l, num_alpha, poly_order, ff, pp, overlap, invsqrt_ss, commutator)
 
-    ! Not sure: before or after mixer (potential .ne. Matrix elements)?
-    ! Should be irrelevant once self-consistency is reached.
-    if (tZora .and. (iScf /= 0)) then
-      call zora_t_correction(1, t_zora, max_l, num_alpha, alpha, poly_order, num_mesh_points,&
-          & weight, abcissa, vxc, nuc, pp, problemsize)
-    end if
-
     ! mixer
     allocate(pot_diff, mold=pot_old)
-    ! pot_diff(:,0:,:,:) = pot_old - pot_new
-    pot_diff(:,0:,:,:) = pot_new - pot_old
-
-    call TMixer_mix(pMixer, pot_new, pot_diff, commutator)
-
-    ! guard against uninitalised arrays on step 0
-    if (iScf == 0) then
-      call TMixer_reset(pMixer, size(pot_new))
+    if (iScf /= 0) then
+        pot_diff(:,0:,:,:) = pot_old - pot_new
+        call TMixer_mix(pMixer, pot_new, pot_diff, commutator)
     end if
 
     ! Not sure: before or after mixer (potential .ne. Matrix elements)?
     ! Should be irrelevant once self-consistency is reached.
-    if (tZora .and. (iScf /= 0)) then
+    if ((iZora > 0) .and. (iScf /= 0)) then
+      ! update potential for self-consistent ZORA
+      if (iZora == 1) then
+          call potential_to_mesh(num_mesh_points, abcissa, vxc, nuc, pp, max_l, num_alpha, poly_order,&
+            & alpha, problemsize, vzora)
+          call kappa_to_mesh(num_mesh_points, vzora, kappa, kappa2)
+      end if
       call zora_t_correction(1, t_zora, max_l, num_alpha, alpha, poly_order, num_mesh_points,&
-          & weight, abcissa, vxc, nuc, pp, problemsize)
+          & weight, abcissa, kappa, kappa2)
     end if
 
     ! finally build Fock matrix
@@ -268,7 +272,7 @@ contains
               ff(1, ii, ss, ttt) = tt(ii, ss, ttt) + pot_new(1, ii, ss, ttt) + vconf(ii, ss, ttt)
               ff(2, ii, ss, ttt) = tt(ii, ss, ttt) + pot_new(2, ii, ss, ttt) + vconf(ii, ss, ttt)
 
-              if (tZora) then
+              if (iZora > 0) then
                 ff(1, ii, ss, ttt) = ff(1, ii, ss, ttt) + t_zora(1, ii, ss, ttt)
                 ff(2, ii, ss, ttt) = ff(2, ii, ss, ttt) + t_zora(2, ii, ss, ttt)
               end if

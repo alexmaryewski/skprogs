@@ -227,10 +227,10 @@ class SlateratomInput:
                 raise sc.SkgenException(msg)
 
         self._compressions = compressions
-        myrelativistics = sc.RELATIVISTICS_NONE, sc.RELATIVISTICS_ZORA
+        myrelativistics = sc.RELATIVISTICS_NONE, sc.RELATIVISTICS_ZORA_SELFCONSISTENT, sc.RELATIVISTICS_ZORA_ATOMIC_POT
         if atomconfig.relativistics not in myrelativistics:
             raise sc.SkgenException("Invalid relativistics type for slateratom")
-        self._relativistic = atomconfig.relativistics == sc.RELATIVISTICS_ZORA
+        self._relativistic = atomconfig.relativistics
 
 
     def isXCFunctionalSupported(self, functional):
@@ -263,10 +263,10 @@ class SlateratomInput:
         """
         maxang = self._atomconfig.maxang
         out = [
-            "{:d} {:d} {:d} {:g} {:s} \t{:s}".format(
+            "{:d} {:d} {:d} {:g} {:d} \t{:s}".format(
                 int(self._atomconfig.atomicnumber), maxang,
                 self._settings.maxscfiter, self._settings.scftol,
-                self._LOGICALSTRS[self._relativistic], self._COMMENT) + \
+                self._relativistic, self._COMMENT) + \
             " znuc maxang nscc scftol relativistic",
 
             "{:d} \t\t\t{:s} functional".format(

@@ -25,13 +25,13 @@ module output
 contains
 
   subroutine write_energies(kinetic_energy, nuclear_energy, coulomb_energy, exchange_energy,&
-      & xc_energy, conf_energy, total_ene, tZora)
+      & xc_energy, conf_energy, total_ene, iZora)
 
     real(dp), intent(in) :: kinetic_energy, nuclear_energy, coulomb_energy
     real(dp), intent(in) :: exchange_energy, xc_energy, total_ene, conf_energy
 
     !> true, if zero-order regular approximation for relativistic effects is desired
-    logical, intent(in) :: tZora
+    integer, intent(in) :: iZora
 
     write(*, '(A)') 'FINAL ENERGIES :                   '
     write(*, '(A)') '-----------------------------------'
@@ -44,7 +44,7 @@ contains
     write(*, '(A,F22.6,A)') 'CONFINEMENT ENERGY ', conf_energy, ' Hartree'
     write(*,*) ' '
 
-    if (.not. tZora) then
+    if (iZora == 0) then
       write(*, '(A,F22.6,A)') 'TOTAL ENERGY       ', total_ene, ' Hartree'
       write(*, '(A)') ' '
       write(*, '(A,F22.6)') 'DFT VIRIAL ', (nuclear_energy + 0.5_dp * coulomb_energy&
@@ -492,7 +492,7 @@ contains
   subroutine write_energies_tagged(ekin, enuc, ecoul, exc, econf, etot, zora, eigvals, occ)
 
     real(dp), intent(in) :: ekin, enuc, ecoul, exc, etot, econf
-    logical, intent(in) :: zora
+    integer, intent(in) :: zora
     real(dp), intent(in) :: eigvals(:,0:,:), occ(:,0:,:)
 
     integer :: fp

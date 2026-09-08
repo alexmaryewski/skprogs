@@ -20,8 +20,8 @@ contains
   !> Reads in all properties, except for occupation numbers.
   subroutine read_input_1(nuc, max_l, occ_shells, maxiter, scftol, poly_order, min_alpha,&
       & max_alpha, num_alpha, tAutoAlphas, alpha, conf_type, confInp, num_occ, num_power,&
-      & num_alphas, xcnr, tPrintEigvecs, tZora, mixnr, mixing_factor, scfGuess, xalpha_const,&
-      & omega,camAlpha, camBeta, grid_params)
+      & num_alphas, xcnr, tPrintEigvecs, iZora, mixnr, mixing_factor, scfGuess, xalpha_const,&
+      & omega, camAlpha, camBeta, grid_params)
 
     !> nuclear charge, i.e. atomic number
     integer, intent(out) :: nuc
@@ -77,8 +77,10 @@ contains
     !> print eigenvectors to stdout
     logical, intent(out) :: tPrintEigvecs
 
-    !> true, if zero-order regular approximation for relativistic effects is desired
-    logical, intent(out) :: tZora
+    !> information about ZORA (0: no ZORA correction; 
+    !! 1: self-consistent ZORA correction;
+    !! 2: ZORA with fixed atomic potential)
+    integer, intent(out) :: iZora
 
     !> identifier of mixer
     integer, intent(out) :: mixnr
@@ -115,7 +117,12 @@ contains
     camBeta = 0.0_dp
 
     write(*, '(A)') 'Enter nuclear charge, maximal angular momentum (s=0), max. SCF, SCF tol., ZORA'
-    read(*,*) nuc, max_l, maxiter, scftol, tZora
+    read(*,*) nuc, max_l, maxiter, scftol, iZora
+
+    if (iZora < 0 .or. iZora > 2) then
+      write(*, '(A,I2,A)') 'iZora = ', iZora, ' not implemented; must be either 0 (no ZORA), 1, or 2.'
+      stop
+    end if
 
     write(*, '(A)') 'Enter XC functional:'
     write(*, '(A)') '0: HF, 1: X-Alpha, 2: LDA-PW91, 3: GGA-PBE96, 4: GGA-BLYP, 5: LCY-PBE96,'
@@ -149,7 +156,7 @@ contains
       read(*,*) grid_params%nRadial, grid_params%nAngular, grid_params%ll_max, grid_params%rm
     end if
 
-    if ((xcnr == xcFunctional%HF_Exchange) .and. tZora) then
+    if ((xcnr == xcFunctional%HF_Exchange) .and. iZora > 0) then
       write(*, '(A)') 'ZORA only available for DFT!'
       stop
     end if
@@ -311,7 +318,7 @@ contains
 
   !> Echos gathered input to stdout.
   subroutine echo_input(nuc, max_l, occ_shells, maxiter, scftol, poly_order, num_alpha, alpha,&
-      & conf_type, confInp, occ, num_occ, num_power, num_alphas, xcnr, tZora, num_mesh_points,&
+      & conf_type, confInp, occ, num_occ, num_power, num_alphas, xcnr, iZora, num_mesh_points,&
       & xalpha_const)
 
     !> nuclear charge, i.e. atomic number
@@ -359,8 +366,10 @@ contains
     !> identifier of exchange-correlation type
     integer, intent(in) :: xcnr
 
-    !> true, if zero-order regular approximation for relativistic effects is desired
-    logical, intent(in) :: tZora
+    !> information about ZORA (0: no ZORA correction; 
+    !! 1: self-consistent ZORA correction;
+    !! 2: ZORA with fixed atomic potential)
+    integer, intent(in) :: iZora
 
     !> number of numerical integration points
     integer, intent(in) :: num_mesh_points
@@ -376,8 +385,9 @@ contains
     write(*, '(A)') 'INPUT SUMMARY '
     write(*, '(A)') '--------------'
 
-    if (tZora) write(*, '(A)') 'SCALAR RELATIVISTIC ZORA CALCULATION'
-    if (.not. tZora) write(*, '(A)') 'NON-RELATIVISTIC CALCULATION'
+    if (iZora == 2) write(*, '(A)') 'SCALAR RELATIVISTIC NON-SELF-CONSISTENT ATOMIC POTENTIAL ZORA CALCULATION'
+    if (iZora == 1) write(*, '(A)') 'SCALAR RELATIVISTIC SELF-CONSISTENT ZORA CALCULATION'
+    if (iZora == 0) write(*, '(A)') 'NON-RELATIVISTIC CALCULATION'
     write(*, '(A)') ' '
 
     write(*, '(A,I3)') 'Nuclear Charge: ', nuc

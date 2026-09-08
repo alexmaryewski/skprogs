@@ -9,7 +9,7 @@ module zora_routines
   implicit none
   private
 
-  public :: zora_t_correction, scaled_zora
+  public :: zora_t_correction, scaled_zora, kappa_to_mesh, potential_to_mesh
 
 
 contains
@@ -18,7 +18,7 @@ contains
   !! mode=1: correction to kinetic energy matrix elements
   !! mode=2: additional terms for scaling matrix elements
   subroutine zora_t_correction(mode, tt, max_l, num_alpha, alpha, poly_order, num_mesh_points,&
-      & weight, abcissa, vxc, nuc, pp, problemsize)
+      & weight, abcissa, kappa, kappa2)
 
     !> determines correction mode, see above
     integer, intent(in) :: mode
@@ -47,32 +47,16 @@ contains
     !> numerical integration abcissas
     real(dp), intent(in) :: abcissa(:)
 
-    !> xc potential on grid
-    real(dp), intent(in) :: vxc(:,:)
+    !> kappa
+    real(dp), intent(in) :: kappa(:,:)
 
-    !> nuclear charge, i.e. atomic number
-    integer, intent(in) :: nuc
-
-    !> density matrix supervector
-    real(dp), intent(in) :: pp(:,0:,:,:)
-
-    !> maximum size of the eigenproblem
-    integer, intent(in) :: problemsize
+    !> kappa^2
+    real(dp), intent(in) :: kappa2(:,:)
 
     !> auxiliary variables
     integer :: ii, jj, kk, ll, mm, nn, oo, start
-    real(dp), allocatable :: kappa(:,:), kappa2(:,:), vtot(:,:)
-
-    allocate(kappa(2, num_mesh_points))
-    allocate(kappa2(2, num_mesh_points))
-    allocate(vtot(2, num_mesh_points))
 
     tt(:,:,:,:) = 0.0_dp
-
-    call potential_to_mesh(num_mesh_points, abcissa, vxc, nuc, pp, max_l, num_alpha, poly_order,&
-        & alpha, problemsize, vtot)
-
-    call kappa_to_mesh(num_mesh_points, vtot, kappa, kappa2)
 
     do ii = 0, max_l
       nn = 0
@@ -94,14 +78,14 @@ contains
               if (mode == 1) then
 
                 tt(1, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa,&
-                    & kappa(1, :), alpha(ii, jj), ll, alpha(ii, kk),&
+                    & kappa(:, 1), alpha(ii, jj), ll, alpha(ii, kk),&
                     & mm, ii) + kinetic_part_2(num_mesh_points, weight, abcissa,&
-                    & kappa(1, :), alpha(ii, jj), ll, alpha(ii, kk),&
+                    & kappa(:, 1), alpha(ii, jj), ll, alpha(ii, kk),&
                     & mm, ii) * real(ii * (ii + 1), dp)
 
-                tt(2, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa, kappa(2, :),&
+                tt(2, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa, kappa(:, 2),&
                     & alpha(ii, jj), ll, alpha(ii, kk), mm, ii)&
-                    & + kinetic_part_2(num_mesh_points, weight, abcissa, kappa(2, :),&
+                    & + kinetic_part_2(num_mesh_points, weight, abcissa, kappa(:, 2),&
                     & alpha(ii, jj), ll, alpha(ii, kk), mm, ii) * real(ii * (ii + 1), dp)
 
               end if
@@ -111,14 +95,14 @@ contains
                 ! calculate matrix elements needed for scaled ZORA
                 ! prefactor 1/2 is included as the same subroutines as for t are used
 
-                tt(1, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa, kappa2(1, :),&
+                tt(1, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa, kappa2(:, 1),&
                     & alpha(ii, jj), ll, alpha(ii, kk), mm, ii)&
-                    & + kinetic_part_2(num_mesh_points, weight, abcissa, kappa2(1, :),&
+                    & + kinetic_part_2(num_mesh_points, weight, abcissa, kappa2(:, 1),&
                     & alpha(ii, jj), ll, alpha(ii, kk), mm, ii) * real(ii * (ii + 1), dp)
 
-                tt(2, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa, kappa2(2, :),&
+                tt(2, ii, nn, oo) = kinetic_part_1(num_mesh_points, weight, abcissa, kappa2(:, 2),&
                     & alpha(ii, jj), ll, alpha(ii, kk), mm, ii)&
-                    & + kinetic_part_2(num_mesh_points, weight, abcissa, kappa2(2, :),&
+                    & + kinetic_part_2(num_mesh_points, weight, abcissa, kappa2(:, 2),&
                     & alpha(ii, jj), ll, alpha(ii, kk), mm, ii) * real(ii * (ii + 1), dp)
 
               end if
@@ -137,7 +121,7 @@ contains
 
   !>
   subroutine scaled_zora(eigval, max_l, num_alpha, alpha, poly_order, problemsize, num_mesh_points,&
-      & weight, abcissa, vxc, nuc, pp, tt, cof, occ, eigval_scaled, zora_ekin)
+      & weight, abcissa, kappa, kappa2, tt, cof, occ, eigval_scaled, zora_ekin)
 
     !> eigenvalues
     real(dp), intent(in) :: eigval(:,0:,:)
@@ -166,14 +150,11 @@ contains
     !> numerical integration abcissas
     real(dp), intent(in) :: abcissa(:)
 
-    !> xc potential on grid
-    real(dp), intent(in) :: vxc(:,:)
+    !> kappa
+    real(dp), intent(in) :: kappa(:,:)
 
-    !> nuclear charge, i.e. atomic number
-    integer, intent(in) :: nuc
-
-    !> density matrix supervector
-    real(dp), intent(in) :: pp(:,0:,:,:)
+    !> kappa^2
+    real(dp), intent(in) :: kappa2(:,:)
 
     !> kinetic supervector
     real(dp), intent(in) :: tt(0:,:,:)
@@ -205,10 +186,12 @@ contains
     zora_ekin2 = 0.0_dp
     tsol2 = 1.0_dp / cc**2
 
+    ! mode, tt, max_l, num_alpha, alpha, poly_order, num_mesh_points,&
+      ! & weight, abcissa
     call zora_t_correction(1, zscale, max_l, num_alpha, alpha, poly_order, num_mesh_points, weight,&
-        & abcissa, vxc, nuc, pp, problemsize)
+        & abcissa, kappa, kappa2)
     call zora_t_correction(2, zscale2, max_l, num_alpha, alpha, poly_order, num_mesh_points,&
-        & weight, abcissa, vxc, nuc, pp, problemsize)
+        & weight, abcissa, kappa, kappa2)
 
     ! first get scaled eigenvalues
 
@@ -414,11 +397,11 @@ contains
 
     do ii = 1, num_mesh_points
 
-      kappa(1, ii) = vtot(1, ii) / (tsol2 - vtot(1, ii))
-      kappa(2, ii) = vtot(2, ii) / (tsol2 - vtot(2, ii))
+      kappa(ii, 1) = vtot(ii, 1) / (tsol2 - vtot(ii, 1))
+      kappa(ii, 2) = vtot(ii, 2) / (tsol2 - vtot(ii, 2))
 
-      kappa2(1, ii) = kappa(1, ii)**2
-      kappa2(2, ii) = kappa(2, ii)**2
+      kappa2(ii, 1) = kappa(ii, 1)**2
+      kappa2(ii, 2) = kappa(ii, 2)**2
 
     end do
 
@@ -483,8 +466,8 @@ contains
 
     do ii = 1, num_mesh_points
 
-      vtot(1, ii) = - real(nuc, dp) / abcissa(ii) + cpot(ii) + vxc(ii, 1)
-      vtot(2, ii) = - real(nuc, dp) / abcissa(ii) + cpot(ii) + vxc(ii, 2)
+      vtot(ii, 1) = - real(nuc, dp) / abcissa(ii) + cpot(ii) + vxc(ii, 1)
+      vtot(ii, 2) = - real(nuc, dp) / abcissa(ii) + cpot(ii) + vxc(ii, 2)
 
     end do
 
