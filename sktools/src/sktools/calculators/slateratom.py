@@ -74,7 +74,6 @@ class SlaterAtomSettings(sc.ClassDict):
         self.maxscfiter = maxscfiter
         self.mixer = mixer
         self.mixfactor = mixfactor
-        print(self.__dict__)
 
     @classmethod
     def fromhsd(cls, root, query):
