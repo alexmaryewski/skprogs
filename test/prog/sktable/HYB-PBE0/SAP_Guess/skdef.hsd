@@ -52,7 +52,7 @@ AtomParameters {
       CustomizedOnsites {
 	2s = -0.64
       }
-      SAPGuess = SAP
+      SCFGuess = SAP
     }
   }
 
