@@ -24,6 +24,8 @@ SUPPORTED_FUNCTIONALS = {'lda' : 2, 'pbe' : 3, 'blyp' : 4, 'lcy-pbe' : 5,
 GUESS_TYPES = {'Thomas-Fermi': 1,
                'SAP': 2}
 
+MIXER_TYPES = {'Simple': 1, "Broyden": 2, "DIIS": 3}
+
 INPUT_FILE = "slateratom.in"
 STDOUT_FILE = "output"
 DEFAULT_BINARY = "slateratom"
@@ -67,13 +69,16 @@ class SlaterAtomSettings(sc.ClassDict):
         Maximal power for every angular momentum.
     """
 
-    def __init__(self, exponents, maxpowers, scfguess, scftol, maxscfiter):
+    def __init__(self, exponents, maxpowers, scfguess, scftol, maxscfiter, mixer, mixfactor):
         super().__init__()
         self.exponents = exponents
         self.maxpowers = maxpowers
         self.scftol = scftol
         self.scfguess = scfguess
         self.maxscfiter = maxscfiter
+        self.mixer = mixer
+        self.mixfactor = mixfactor
+        print(self.__dict__)
 
     @classmethod
     def fromhsd(cls, root, query):
@@ -87,7 +92,11 @@ class SlaterAtomSettings(sc.ClassDict):
             root, "scftolerance", converter=conv.float0, defvalue=1.0e-10)
         maxscfiter = query.getvalue(
             root, "maxscfiterations", converter=conv.int0, defvalue=120)
-        return cls(exponents, maxpowers, scfguess, scftol, maxscfiter)
+        mixer = query.getvalue(
+            root, "mixer", defvalue="Broyden")
+        mixfactor = query.getvalue(
+            root, "mixingfactor", converter=conv.float0, defvalue=0.1)
+        return cls(exponents, maxpowers, scfguess, scftol, maxscfiter, mixer, mixfactor)
 
     def __eq__(self, other):
         if not isinstance(other, SlaterAtomSettings):
@@ -112,6 +121,10 @@ class SlaterAtomSettings(sc.ClassDict):
                 > sc.INPUT_FLOAT_TOLERANCE):
             return False
         if self.maxscfiter != other.maxscfiter:
+            return False
+        if self.mixer != other.mixer:
+            return False
+        if self.mixfactor != other.mixfactor:
             return False
         return True
 
@@ -171,6 +184,14 @@ class SlateratomInput:
         if self._settings.scfguess not in GUESS_TYPES.keys():
             msg = "SlaterAtom: unsupported guess (must be either Thomas-Fermi or SAP)"
             raise sc.SkgenException(msg)
+
+        if self._settings.mixer not in MIXER_TYPES:
+            msg = "SlaterAtom: unsupported mixer (must be either Simple, Broyden, or DIIS)"
+            raise sc.SkgenException(msg)
+
+        if not (0. <= self._settings.mixfactor <= 1.):
+             msg = "Slateratom: SCF mixing factor must be between 0 and 1"
+             raise sc.SkgenException(msg)
 
         if self._settings.scftol <= 0.0:
             msg = "Slateratom: SCF tolerance must be >0.0 a.u."
@@ -379,8 +400,8 @@ class SlateratomInput:
             self._LOGICALSTRS[False], self._COMMENT))
         out.append("{} \t\t\t{:s} SCF guess".format(GUESS_TYPES[self._settings.scfguess],
                                                      self._COMMENT))
-        out.append("{} {:g} \t\t\t{:s} broyden mixer, mixing factor".format(
-            2, 0.1, self._COMMENT))
+        out.append("{} {:g} \t\t\t{:s} mixer, mixing factor".format(
+            MIXER_TYPES[self._settings.mixer], self._settings.mixfactor, self._COMMENT))
 
         # Occupations
         for ll, occperl in enumerate(self._atomconfig.occupations):
