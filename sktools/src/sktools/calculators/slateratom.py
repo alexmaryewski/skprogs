@@ -87,7 +87,7 @@ class SlaterAtomSettings(sc.ClassDict):
         maxscfiter = query.getvalue(
             root, "maxscfiterations", converter=conv.int0, defvalue=120)
         mixer = query.getvalue(
-            root, "mixer", defvalue="broyden")
+            root, "mixer", defvalue="Broyden")
         mixfactor = query.getvalue(
             root, "mixingfactor", converter=conv.float0, defvalue=0.1)
         return cls(exponents, maxpowers, scftol, maxscfiter, mixer, mixfactor)
