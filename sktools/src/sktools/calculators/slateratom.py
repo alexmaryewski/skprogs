@@ -21,7 +21,7 @@ SUPPORTED_FUNCTIONALS = {'lda' : 2, 'pbe' : 3, 'blyp' : 4, 'lcy-pbe' : 5,
                          'lcy-bnl' : 6, 'pbe0' : 7, 'b3lyp' : 8,
                          'camy-b3lyp' : 9, 'camy-pbeh' : 10}
 
-MIXER_TYPES = {'simple': 1, "broyden": 2, "diis": 3}
+MIXER_TYPES = {'Simple': 1, "Broyden": 2, "DIIS": 3}
 
 INPUT_FILE = "slateratom.in"
 STDOUT_FILE = "output"
@@ -74,6 +74,7 @@ class SlaterAtomSettings(sc.ClassDict):
         self.maxscfiter = maxscfiter
         self.mixer = mixer
         self.mixfactor = mixfactor
+        print(self.__dict__)
 
     @classmethod
     def fromhsd(cls, root, query):
@@ -173,7 +174,7 @@ class SlateratomInput:
             raise sc.SkgenException(msg)
 
         if self._settings.mixer not in MIXER_TYPES:
-            msg = "SlaterAtom: unsupported mixer (must be either simple, Broyden, or DIIS)"
+            msg = "SlaterAtom: unsupported mixer (must be either Simple, Broyden, or DIIS)"
             raise sc.SkgenException(msg)
 
         if not (0. <= self._settings.mixfactor <= 1.):
