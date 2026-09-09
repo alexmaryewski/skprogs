@@ -26,7 +26,6 @@ AtomParameters {
 	S = PowerCompression { Power = 2; Radius = 2.7 }
 	P = PowerCompression { Power = 2; Radius = 2.7 }
       }
-      SCFGuess = SAP
     }
   }
 
@@ -52,7 +51,6 @@ AtomParameters {
       CustomizedOnsites {
 	2s = -0.64
       }
-      SCFGuess = SAP
     }
   }
 
@@ -76,6 +74,7 @@ OnecenterParameters {
 	S = 2
 	P = 2
       }
+      SCFGuess = SAP
     }
   }
 
@@ -90,6 +89,7 @@ OnecenterParameters {
 	S = 2
 	P = 2
       }
+      SCFGuess = SAP
     }
   }
 }
