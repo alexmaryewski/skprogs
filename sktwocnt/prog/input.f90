@@ -21,7 +21,6 @@ module input
   !> comment string
   character, parameter :: comment = "#"
 
-
 contains
 
   !> Reads and extracts relevant information from 'sktwocnt.in' file.
@@ -47,15 +46,14 @@ contains
 
     !! xc-functional type
     !! (1: LDA-PW91, 2: GGA-PBE96, 3: GGA-BLYP, 4: LCY-PBE96, 5: LCY-BNL, 6: PBE0, 7: B3LYP,
-    !! 8: CAMY-B3LYP, 9: CAMY-PBEh)
+    !! 8: CAMY-B3LYP, 9: CAMY-PBEh, 10: TPSS, 11: SCAN, 12: r2SCAN, 13: r4SCAN, 14: TASK,
+    !! 15: TASK+CC, 16: LAK)
     integer :: iXC
 
     !! potential data columns, summed up in order to receive the total atomic potential
     integer, allocatable :: potcomps(:)
 
-    !! true, if radial grid-orbital 1st/2nd derivative shall be read
-    logical :: tReadRadDerivs
-
+    inp%tMGGA = .false.
     inp%tLC = .false.
     inp%tCam = .false.
     inp%tGlobalHybrid = .false.
@@ -107,10 +105,36 @@ contains
     case(xcFunctional%CAMY_PBEh)
       ! CAMY-PBEh (general CAM form)
       inp%tCam = .true.
+    case(xcFunctional%MGGA_TPSS)
+      ! MGGA-TPSS
+      inp%tMGGA = .true.
+    case(xcFunctional%MGGA_SCAN)
+      ! MGGA-SCAN
+      inp%tMGGA = .true.
+    case(xcFunctional%MGGA_r2SCAN)
+      ! MGGA-r2SCAN
+      inp%tMGGA = .true.
+    case(xcFunctional%MGGA_r4SCAN)
+      ! MGGA-r4SCAN
+      inp%tMGGA = .true.
+    case(xcFunctional%MGGA_TASK)
+      ! MGGA-TASK
+      inp%tMGGA = .true.
+    case(xcFunctional%MGGA_TASK_CC)
+      ! MGGA-TASK+CC
+      inp%tMGGA = .true.
+    case(xcFunctional%MGGA_LAK)
+      ! MGGA-LAK
+      inp%tMGGA = .true.
     case default
       call error_("Unknown exchange-correlation functional!", fname, line, iline)
     end select
     inp%iXC = iXC
+
+    if (inp%tMGGA .and. .not. inp%tDensitySuperpos) then
+      call error_("mGGA functionals are only supported in the density superposition mode!", fname,&
+          & line, iline)
+    end if
 
     if (inp%iXC == xcFunctional%HYB_B3LYP) then
       ! 20% fraction of HFX hard-coded at the moment
@@ -169,13 +193,12 @@ contains
       allocate(potcomps(3))
       potcomps = [2, 3, 4]
     end if
-    tReadRadDerivs = .not. inp%tHetero
 
-    call readatom_(fname, fp, iLine, potcomps, inp%tDensitySuperpos, tReadRadDerivs,&
-        & (inp%tGlobalHybrid .or. inp%tLC .or. inp%tCam), inp%atom1)
+    call readatom_(fname, fp, iLine, potcomps, inp%tDensitySuperpos,&
+        & (inp%tGlobalHybrid .or. inp%tLC .or. inp%tCam), inp%tMGGA, inp%atom1)
     if (inp%tHetero) then
-      call readatom_(fname, fp, iLine, potcomps, inp%tDensitySuperpos, .true., (inp%tGlobalHybrid&
-          & .or. inp%tLC .or. inp%tCam), inp%atom2)
+      call readatom_(fname, fp, iLine, potcomps, inp%tDensitySuperpos, (inp%tGlobalHybrid&
+          & .or. inp%tLC .or. inp%tCam), inp%tMGGA, inp%atom2)
     end if
 
     close(fp)
@@ -184,8 +207,8 @@ contains
 
 
   !> Fills TAtomdata instance based on slateratom's output.
-  subroutine readatom_(fname, fp, iLine, potcomps, tDensitySuperpos, tReadRadDerivs, tNonLocal,&
-      & atom)
+  subroutine readatom_(fname, fp, iLine, potcomps, tDensitySuperpos, tNonLocal,&
+      & tMGGA, atom)
 
     !> filename
     character(len=*), intent(in) :: fname
@@ -202,11 +225,11 @@ contains
     !> true, if density superposition is requested, otherwise potential superposition is applied
     logical, intent(in) :: tDensitySuperpos
 
-    !> true, if radial grid-orbital 1st/2nd derivative shall be read
-    logical, intent(in) :: tReadRadDerivs
-
     !! true, there are non-local exchange contributions to calculate
     logical, intent(in) :: tNonLocal
+
+    !! true, if kinetic energy density (tau) needs to be read from density file
+    logical, intent(in) :: tMGGA
 
     !> atomic properties instance
     type(TAtomdata), intent(out) :: atom
@@ -236,24 +259,17 @@ contains
 
     allocate(atom%angmoms(atom%nBasis))
     allocate(atom%rad(atom%nBasis))
-    if (tReadRadDerivs) then
-      allocate(atom%drad(atom%nBasis))
-      allocate(atom%ddrad(atom%nBasis))
-    end if
+    allocate(atom%drad(atom%nBasis))
+    allocate(atom%ddrad(atom%nBasis))
 
     do ii = 1, atom%nBasis
       call nextline_(fp, iLine, line)
       read(line, *, iostat=iErr) buffer, atom%angmoms(ii)
       call checkerror_(fname, line, iLine, iErr)
-      if (tReadRadDerivs) then
-        call readdata_(buffer, [1, 3, 4, 5], data)
-        call TGridorb2_init(atom%rad(ii), data(:, 1), data(:, 2))
-        call TGridorb2_init(atom%drad(ii), data(:, 1), data(:, 3))
-        call TGridorb2_init(atom%ddrad(ii), data(:, 1), data(:, 4))
-      else
-        call readdata_(buffer, [1, 3], data)
-        call TGridorb2_init(atom%rad(ii), data(:, 1), data(:, 2))
-      end if
+      call readdata_(buffer, [1, 3, 4, 5], data)
+      call TGridorb2_init(atom%rad(ii), data(:, 1), data(:, 2))
+      call TGridorb2_init(atom%drad(ii), data(:, 1), data(:, 3))
+      call TGridorb2_init(atom%ddrad(ii), data(:, 1), data(:, 4))
       ! check if wave function follows the sign convention
       ! (positive where abs(r * R(r)) has its maximum)
       imax = maxloc(abs(data(:, 1) * data(:, 2)), dim=1)
@@ -302,7 +318,12 @@ contains
     read(line, *, iostat=iErr) buffer
     call checkerror_(fname, line, iLine, iErr)
     if (tDensitySuperpos) then
-      call readdata_(buffer, [1, 3, 4, 5], data)
+      if (tMGGA) then
+        call readdata_(buffer, [1, 3, 4, 5, 6], data)
+        call TGridorb2_init(atom%tau, data(:, 1), data(:, 5))
+      else
+        call readdata_(buffer, [1, 3, 4, 5], data)
+      end if
       call TGridorb2_init(atom%rho, data(:, 1), data(:, 2))
       call TGridorb2_init(atom%drho, data(:, 1), data(:, 3))
       call TGridorb2_init(atom%ddrho, data(:, 1), data(:, 4))

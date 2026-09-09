@@ -236,7 +236,7 @@ contains
     !! auxiliary variables
     integer :: ind, i1, i2
     real(dp) :: coord(2), coordreal(2)
-    real(dp) :: r1, theta1, r2a, r2b, theta2a, theta2b, rtmpa, rtmpb, jacobi
+    real(dp) :: rho, zz, r1, theta1, r2a, r2b, theta2a, theta2b, rtmpa, rtmpb, jacobi
 
     n1 = size(quads(1)%xx)
     n2 = size(quads(2)%xx)
@@ -257,23 +257,14 @@ contains
         r1 = coordreal(1)
         theta1 = coordreal(2)
 
-        rtmpa = dist**2 + r1**2
-        rtmpb = 2.0_dp * r1 * dist * cos(theta1)
+        rho = r1 * sin(theta1)
+        zz = r1 * cos(theta1)
+      
+        r2a = sqrt(rho**2 + (zz - dist)**2)
+        r2b = sqrt(rho**2 + (zz + dist)**2)
 
-        r2a = sqrt(rtmpa - rtmpb) ! dist > 0
-        r2b = sqrt(rtmpa + rtmpb) ! dist < 0
-
-        rtmpa = - 0.5_dp * (dist**2 + r2a**2 - r1**2) / (dist * r2a)
-        rtmpb = 0.5_dp * (dist**2 + r2b**2 - r1**2) / (dist * r2b)
-
-        ! make sure, we are not sliding out from [-1,1] range for acos
-        rtmpa = min(rtmpa, 1.0_dp)
-        rtmpa = max(rtmpa, - 1.0_dp)
-        rtmpb = min(rtmpb, 1.0_dp)
-        rtmpb = max(rtmpb, - 1.0_dp)
-
-        theta2a = acos(rtmpa)
-        theta2b = acos(rtmpb)
+        theta2a = atan2(rho, zz - dist)
+        theta2b = atan2(rho, zz + dist)
 
         grid1(ind, 1) = r1
         grid1(ind, 2) = theta1

@@ -18,10 +18,10 @@ module xcfunctionals
 #:elif LIBXC_VERSION_MAJOR == 7
   use xc_f03_lib_m, only : xc_f03_func_t, xc_f03_func_init, xc_f03_func_end, xc_f03_lda_exc_vxc,&
       & xc_f03_gga_exc_vxc, xc_f03_func_set_ext_params, xc_f03_mgga_exc_vxc,&
-      & xc_f03_func_set_dens_threshold, XC_POLARIZED, xc_f03_func_set_tau_threshold
+      & xc_f03_func_set_dens_threshold, XC_POLARIZED
   use xc_f03_funcs_m, only : XC_LDA_X, XC_LDA_X_YUKAWA, XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_X_B88,&
       & XC_GGA_X_SFAT_PBE, XC_HYB_GGA_XC_B3LYP, XC_HYB_GGA_XC_CAMY_B3LYP, XC_GGA_C_PBE,&
-      & XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN,XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN,&
+      & XC_MGGA_X_SCAN, XC_MGGA_X_R4SCAN, XC_MGGA_C_SCAN, XC_MGGA_X_TASK, XC_MGGA_X_R2SCAN,&
       & XC_MGGA_C_R2SCAN, XC_MGGA_X_TPSS, XC_MGGA_C_TPSS, XC_MGGA_C_CC, XC_GGA_C_LYP
 #:endif
 
